@@ -1,5 +1,5 @@
 <html><head><base href="https://websim.creation.engine/rgbyp-color-change-fullscreen-responsive/">
-<title>Coloreka - RGBYP Color Changer with Intro Screen and Transitions</title>
+<title>Coloreka - RGBYP Color Changer with Improved Mobile Interactions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
@@ -131,7 +131,8 @@ let lastInteractionTime = 0;
 const INTERACTION_COOLDOWN = 50; // 50ms cooldown between interactions
 let isIntroScreen = true;
 let introTapStarted = false;
-let modeSwitchOccurred = false; 
+let lastModeSwitchTime = 0;
+const MODE_SWITCH_COOLDOWN = 300; // 300ms cooldown for mode switching
 
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
@@ -142,7 +143,7 @@ function getRandomColor(currentLeftColor, currentRightColor) {
 }
 
 function changeColors() {
-  if (isIntroScreen || modeSwitchOccurred) return;
+  if (isIntroScreen) return;
 
   const currentTime = new Date().getTime();
   if (currentTime - lastInteractionTime < INTERACTION_COOLDOWN) {
@@ -251,6 +252,12 @@ function toggleSound() {
 }
 
 function toggleTwoColorMode() {
+  const currentTime = new Date().getTime();
+  if (currentTime - lastModeSwitchTime < MODE_SWITCH_COOLDOWN) {
+    return;
+  }
+  lastModeSwitchTime = currentTime;
+
   isTwoColorMode = !isTwoColorMode;
   const rightColorElement = document.getElementById('rightColor');
   if (isTwoColorMode) {
@@ -262,8 +269,6 @@ function toggleTwoColorMode() {
   } else {
     rightColorElement.style.display = 'none';
   }
-  lastInteractionTime = new Date().getTime(); // Reset interaction cooldown
-  modeSwitchOccurred = true;
 }
 
 function returnToIntro() {
@@ -308,9 +313,6 @@ document.addEventListener('keydown', (event) => {
       case 'ShiftRight':
         if (!isIntroScreen) {
           toggleTwoColorMode();
-          setTimeout(() => {
-            modeSwitchOccurred = false;
-          }, 0);
         }
         break;
       case 'Escape':
@@ -346,8 +348,6 @@ document.body.addEventListener('touchend', (event) => {
   event.preventDefault();
   clearTimeout(longPressTimer);
 
-  const currentTime = new Date().getTime();
-
   if (isIntroScreen) {
     if (introTapStarted) {
       startApp();
@@ -356,20 +356,15 @@ document.body.addEventListener('touchend', (event) => {
     return;
   }
 
-  if (touchCount === 2 && currentTime - lastInteractionTime >= INTERACTION_COOLDOWN) {
+  if (touchCount === 2) {
     toggleTwoColorMode();
-    modeSwitchOccurred = true; 
-  } else if (touchCount === 1 && !isLongPress && !modeSwitchOccurred) {
+  } else if (touchCount === 1 && !isLongPress) {
     changeColors();
   } else if (touchCount === 3) {
     returnToIntro();
   }
 
   touchCount = 0;
-
-  setTimeout(() => {
-    modeSwitchOccurred = false;
-  }, 0);
 }, { passive: false });
 
 window.addEventListener('load', checkMobile);
