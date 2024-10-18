@@ -1,0 +1,377 @@
+<html><head><base href="https://websim.creation.engine/rgbyp-color-change-fullscreen-responsive/">
+<title>Coloreka - RGBYP Color Changer with Intro Screen and Transitions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  body {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    display: flex;
+  }
+  
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  #leftColor, #rightColor {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #rightColor {
+    display: none;
+  }
+
+  .colorLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.5s ease;
+  }
+
+  .wipe-transition {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease;
+  }
+
+  #introScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, 
+      #FFB3BA, #FFDFBA, #FFFFBA, #BAFFC9, #BAE1FF, #E0BBE4
+    );
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .baloo-2-intro-title {
+    font-family: "Baloo 2", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 800;
+    font-style: normal;
+    font-size: 8vw;
+    background: linear-gradient(
+      to right,
+      #FFB3BA, #FFDFBA, #FFFFBA, #BAFFC9, #BAE1FF, #E0BBE4, #FFB3BA
+    );
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: rainbow 10s linear infinite;
+  }
+
+  @media (orientation: portrait) {
+    .baloo-2-intro-title {
+      font-size: 16vw;
+    }
+  }
+
+  @keyframes rainbow {
+    0% {
+      background-position: 0% center;
+    }
+    100% {
+      background-position: -200% center;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="introScreen">
+  <div class="baloo-2-intro-title">Coloreka</div>
+</div>
+<div id="leftColor">
+  <div class="colorLayer"></div>
+</div>
+<div id="rightColor">
+  <div class="colorLayer"></div>
+</div>
+
+<script>
+const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
+let currentLeftColor, currentRightColor;
+let soundOn = true;
+let touchStartTime = 0;
+let touchCount = 0;
+let longPressTimer;
+let isTwoColorMode = false;
+const LONG_PRESS_DURATION = 700; // milliseconds
+let touchStartY = 0;
+let isMobile = false;
+let lastInteractionTime = 0;
+const INTERACTION_COOLDOWN = 50; // 50ms cooldown between interactions
+let isIntroScreen = true;
+let introTapStarted = false;
+let modeSwitchOccurred = false; 
+
+function getRandomColor(currentLeftColor, currentRightColor) {
+  let newColor;
+  do {
+    newColor = colors[Math.floor(Math.random() * colors.length)];
+  } while (newColor === currentLeftColor || newColor === currentRightColor);
+  return newColor;
+}
+
+function changeColors() {
+  if (isIntroScreen || modeSwitchOccurred) return;
+
+  const currentTime = new Date().getTime();
+  if (currentTime - lastInteractionTime < INTERACTION_COOLDOWN) {
+    return;
+  }
+  lastInteractionTime = currentTime;
+
+  const previousLeftColor = currentLeftColor;
+  const previousRightColor = currentRightColor;
+  
+  currentLeftColor = getRandomColor(currentLeftColor, currentRightColor);
+  currentRightColor = getRandomColor(currentLeftColor, currentRightColor);
+
+  applyTransition('leftColor', currentLeftColor);
+  if (isTwoColorMode) {
+    applyTransition('rightColor', currentRightColor);
+  }
+  
+  if (soundOn) {
+    if (isTwoColorMode) {
+      speak(`${previousLeftColor} and ${previousRightColor}`);
+    } else {
+      speak(previousLeftColor);
+    }
+  }
+}
+
+function applyTransition(elementId, newColor) {
+  const container = document.getElementById(elementId);
+  const currentLayer = container.querySelector('.colorLayer');
+  const newLayer = document.createElement('div');
+  
+  newLayer.className = 'wipe-transition';
+  newLayer.style.backgroundColor = newColor;
+  
+  const directions = ['left', 'right', 'top', 'bottom'];
+  const direction = directions[Math.floor(Math.random() * directions.length)];
+  
+  switch(direction) {
+    case 'left':
+      newLayer.style.transform = 'translateX(100%)';
+      break;
+    case 'right':
+      newLayer.style.transform = 'translateX(-100%)';
+      break;
+    case 'top':
+      newLayer.style.transform = 'translateY(100%)';
+      break;
+    case 'bottom':
+      newLayer.style.transform = 'translateY(-100%)';
+      break;
+  }
+  
+  container.appendChild(newLayer);
+  
+  setTimeout(() => {
+    newLayer.style.transform = 'translate(0, 0)';
+  }, 50);
+  
+  setTimeout(() => {
+    currentLayer.remove();
+    newLayer.className = 'colorLayer';
+  }, 550);
+}
+
+function applyFadeTransition(elementId, newColor) {
+  const container = document.getElementById(elementId);
+  const currentLayer = container.querySelector('.colorLayer');
+  const newLayer = document.createElement('div');
+  
+  newLayer.className = 'colorLayer';
+  newLayer.style.backgroundColor = newColor;
+  newLayer.style.opacity = '0';
+  container.appendChild(newLayer);
+  
+  setTimeout(() => {
+    newLayer.style.opacity = '1';
+    currentLayer.style.opacity = '0';
+  }, 50);
+  
+  setTimeout(() => {
+    currentLayer.remove();
+  }, 550);
+}
+
+function startApp() {
+  if (isIntroScreen) {
+    isIntroScreen = false;
+    document.getElementById('introScreen').style.display = 'none';
+    currentLeftColor = getRandomColor();
+    currentRightColor = getRandomColor(currentLeftColor);
+    applyFadeTransition('leftColor', currentLeftColor);
+  }
+}
+
+function speak(text) {
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.volume = 0.25;
+  speechSynthesis.speak(utterance);
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  speak(soundOn ? "Sound on" : "Sound off");
+}
+
+function toggleTwoColorMode() {
+  isTwoColorMode = !isTwoColorMode;
+  const rightColorElement = document.getElementById('rightColor');
+  if (isTwoColorMode) {
+    rightColorElement.style.display = 'block';
+    if (!currentRightColor || currentRightColor === currentLeftColor) {
+      currentRightColor = getRandomColor(currentLeftColor, currentLeftColor);
+    }
+    rightColorElement.querySelector('.colorLayer').style.backgroundColor = currentRightColor;
+  } else {
+    rightColorElement.style.display = 'none';
+  }
+  lastInteractionTime = new Date().getTime(); // Reset interaction cooldown
+  modeSwitchOccurred = true;
+}
+
+function returnToIntro() {
+  isIntroScreen = true;
+  document.getElementById('introScreen').style.display = 'flex';
+  document.getElementById('leftColor').innerHTML = '<div class="colorLayer"></div>';
+  document.getElementById('rightColor').innerHTML = '<div class="colorLayer"></div>';
+  document.getElementById('rightColor').style.display = 'none';
+  isTwoColorMode = false;
+  currentLeftColor = undefined;
+  currentRightColor = undefined;
+}
+
+function checkMobile() {
+  isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+document.body.addEventListener('mousedown', (event) => {
+  if (isIntroScreen && !isMobile) {
+    startApp();
+  } else if (!isMobile) {
+    changeColors();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (!isMobile) {
+    switch (event.code) {
+      case 'Enter':
+        if (isIntroScreen) {
+          startApp();
+        } else {
+          changeColors();
+        }
+        break;
+      case 'KeyS':
+        if (!isIntroScreen) {
+          toggleSound();
+        }
+        break;
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        if (!isIntroScreen) {
+          toggleTwoColorMode();
+          setTimeout(() => {
+            modeSwitchOccurred = false;
+          }, 0);
+        }
+        break;
+      case 'Escape':
+        returnToIntro();
+        break;
+    }
+  }
+});
+
+document.body.addEventListener('touchstart', (event) => {
+  event.preventDefault();
+  touchStartTime = new Date().getTime();
+  touchCount = event.touches.length;
+  isLongPress = false;
+  touchStartY = event.touches[0].clientY;
+
+  if (isIntroScreen) {
+    introTapStarted = true;
+    return;
+  }
+
+  if (touchCount === 1) {
+    longPressTimer = setTimeout(() => {
+      if (touchCount === 1) {
+        isLongPress = true;
+        toggleSound();
+      }
+    }, LONG_PRESS_DURATION);
+  }
+}, { passive: false });
+
+document.body.addEventListener('touchend', (event) => {
+  event.preventDefault();
+  clearTimeout(longPressTimer);
+
+  const currentTime = new Date().getTime();
+
+  if (isIntroScreen) {
+    if (introTapStarted) {
+      startApp();
+      introTapStarted = false;
+    }
+    return;
+  }
+
+  if (touchCount === 2 && currentTime - lastInteractionTime >= INTERACTION_COOLDOWN) {
+    toggleTwoColorMode();
+    modeSwitchOccurred = true; 
+  } else if (touchCount === 1 && !isLongPress && !modeSwitchOccurred) {
+    changeColors();
+  } else if (touchCount === 3) {
+    returnToIntro();
+  }
+
+  touchCount = 0;
+
+  setTimeout(() => {
+    modeSwitchOccurred = false;
+  }, 0);
+}, { passive: false });
+
+window.addEventListener('load', checkMobile);
+</script>
+</body></html>
