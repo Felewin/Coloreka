@@ -55,6 +55,7 @@
     width: 100%;
     height: 100%;
     transition: transform 0.5s ease, opacity 0.5s ease;
+    backface-visibility: hidden;
   }
 
   @keyframes zoomIn {
@@ -241,7 +242,7 @@ function applyTransition(elementId, newColor) {
   newLayer.className = 'wipe-transition';
   newLayer.style.backgroundColor = newColor;
   
-  const effects = ['diagonalWipe'];
+  const effects = ['slide', 'zoom', 'rotate', 'curl', 'spin'];
   const effect = effects[Math.floor(Math.random() * effects.length)];
   
   switch(effect) {
@@ -256,8 +257,11 @@ function applyTransition(elementId, newColor) {
       newLayer.style.transform = 'rotate(-180deg) scale(0)';
       newLayer.style.opacity = '0';
       break;
-    case 'diagonalWipe':
-      newLayer.style.clipPath = 'polygon(100% 0, 100% 0, 100% 100%, 100% 100%)';
+    case 'curl':
+      applyCurlTransition(newLayer);
+      break;
+    case 'spin':
+      applySpinTransition(newLayer);
       break;
   }
   
@@ -276,8 +280,13 @@ function applyTransition(elementId, newColor) {
         newLayer.style.transform = 'rotate(0) scale(1)';
         newLayer.style.opacity = '1';
         break;
-      case 'diagonalWipe':
-        newLayer.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
+      case 'curl':
+        newLayer.style.transform = 'perspective(1000px) rotateY(0deg)';
+        newLayer.style.opacity = '1';
+        break;
+      case 'spin':
+        newLayer.style.transform = 'rotate(0deg) scale(1)';
+        newLayer.style.opacity = '1';
         break;
     }
   }, 50);
@@ -285,10 +294,19 @@ function applyTransition(elementId, newColor) {
   setTimeout(() => {
     currentLayer.remove();
     newLayer.className = 'colorLayer';
-    if (effect === 'diagonalWipe') {
-      newLayer.style.clipPath = 'none';
-    }
   }, 550);
+}
+
+function applySpinTransition(newLayer) {
+  newLayer.style.transformOrigin = 'center center';
+  newLayer.style.transform = 'rotate(720deg) scale(0)';
+  newLayer.style.opacity = '0';
+}
+
+function applyCurlTransition(newLayer) {
+  newLayer.style.transformOrigin = 'bottom right';
+  newLayer.style.transform = 'perspective(1000px) rotateY(-90deg)';
+  newLayer.style.opacity = '0';
 }
 
 function applySlideTransition(newLayer) {
@@ -400,7 +418,7 @@ function updateIntroRules() {
   introRules.innerHTML = `
     <h3>Controls</h3>
     <ul>
-      <li>▶️ <strong>Advance</strong> (with playful transitions): ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
+      <li>▶️ <strong>Advance</strong>: ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
       <li>🔄 <strong>Switch between single color mode and two-color mode</strong>: ${isMobile ? '✌️ Two-finger tap' : '⇧ Press the Shift key'}</li>
       <li>🔊 <strong>Toggle sound</strong>: ${isMobile ? '👆⏳ Long press' : "🅢 Press the 'S' key"}</li>
       <li>📜 <strong>Show these instructions</strong>: ${isMobile ? '🤟 Three-finger tap' : '🚪 Press Escape'}</li>
