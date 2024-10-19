@@ -1,5 +1,5 @@
 <html><head><base href="https://websim.creation.engine/rgbyp-color-change-fullscreen-responsive/">
-<title>Coloreka - RGBYP Color Changer with Improved Mobile Interactions</title>
+<title>Coloreka - RGBYP Color Changer with Animated Intro Screen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
@@ -64,12 +64,15 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(to right, 
-      #FFB3BA, #FFDFBA, #FFFFBA, #BAFFC9, #BAE1FF, #E0BBE4
+      #FFB3BA, #FFDFBA, #FFFFBA, #BAFFC9, #BAE1FF, #E0BBE4, #FFB3BA
     );
+    background-size: 200% 100%;
     z-index: 1000;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    animation: moveGradient 10s linear infinite;
   }
 
   .baloo-2-intro-title {
@@ -80,18 +83,49 @@
     font-size: 8vw;
     background: linear-gradient(
       to right,
-      #FFB3BA, #FFDFBA, #FFFFBA, #BAFFC9, #BAE1FF, #E0BBE4, #FFB3BA
+      #FFB3BA, #E0BBE4, #BAE1FF, #BAFFC9, #FFFFBA, #FFDFBA, #FFB3BA
     );
     background-size: 200% auto;
     color: transparent;
     -webkit-background-clip: text;
     background-clip: text;
     animation: rainbow 10s linear infinite;
+    margin-bottom: 2vh;
+  }
+
+  #introRules {
+    font-family: "Baloo 2", sans-serif;
+    font-size: 2vw;
+    color: #333;
+    text-align: left;
+    background-color: rgba(255, 255, 255, 0.5);
+    padding: 2vh;
+    border-radius: 10px;
+    max-width: 80%;
+    overflow-y: auto;
+    max-height: 60vh;
+    animation: fadeIn 2s ease-in-out;
+  }
+
+  #introRules h3 {
+    margin-top: 0;
+  }
+
+  #introRules ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+
+  #introRules li {
+    margin-bottom: 1vh;
   }
 
   @media (orientation: portrait) {
     .baloo-2-intro-title {
       font-size: 16vw;
+    }
+    #introRules {
+      font-size: 4vw;
     }
   }
 
@@ -103,11 +137,86 @@
       background-position: -200% center;
     }
   }
+
+  @keyframes moveGradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: -200% 50%;
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes ripple {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.5); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+
+  @keyframes pageTurn {
+    0% { transform: perspective(1200px) rotateY(0); }
+    100% { transform: perspective(1200px) rotateY(-180deg); }
+  }
+
+  @keyframes brush {
+    0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+    100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  }
+
+  @keyframes swirl {
+    0% { transform: rotate(0) scale(1); opacity: 1; }
+    100% { transform: rotate(720deg) scale(0); opacity: 0; }
+  }
+
+  .ripple-transition {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300%;
+    height: 300%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    animation: ripple 0.8s ease-out;
+  }
+
+  .page-turn-transition {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    animation: pageTurn 0.8s ease-in-out;
+    backface-visibility: hidden;
+  }
+
+  .brush-transition {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    animation: brush 0.8s ease-in-out;
+  }
+
+  .swirl-transition {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    animation: swirl 0.8s ease-in-out;
+  }
 </style>
 </head>
 <body>
 <div id="introScreen">
   <div class="baloo-2-intro-title">Coloreka</div>
+  <div id="introRules"></div>
 </div>
 <div id="leftColor">
   <div class="colorLayer"></div>
@@ -133,6 +242,7 @@ let isIntroScreen = true;
 let introTapStarted = false;
 let lastModeSwitchTime = 0;
 const MODE_SWITCH_COOLDOWN = 300; // 300ms cooldown for mode switching
+let isShiftKeyDown = false;
 
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
@@ -140,6 +250,74 @@ function getRandomColor(currentLeftColor, currentRightColor) {
     newColor = colors[Math.floor(Math.random() * colors.length)];
   } while (newColor === currentLeftColor || newColor === currentRightColor);
   return newColor;
+}
+
+function applyTransition(elementId, newColor) {
+  const container = document.getElementById(elementId);
+  const currentLayer = container.querySelector('.colorLayer');
+  const newLayer = document.createElement('div');
+  
+  const transitions = ['swirl'];
+  const transition = transitions[Math.floor(Math.random() * transitions.length)];
+  
+  newLayer.style.backgroundColor = newColor;
+  
+  switch(transition) {
+    case 'wipe':
+      newLayer.className = 'wipe-transition';
+      const directions = ['left', 'right', 'top', 'bottom'];
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      
+      switch(direction) {
+        case 'left':
+          newLayer.style.transform = 'translateX(100%)';
+          break;
+        case 'right':
+          newLayer.style.transform = 'translateX(-100%)';
+          break;
+        case 'top':
+          newLayer.style.transform = 'translateY(100%)';
+          break;
+        case 'bottom':
+          newLayer.style.transform = 'translateY(-100%)';
+          break;
+      }
+      
+      container.appendChild(newLayer);
+      
+      setTimeout(() => {
+        newLayer.style.transform = 'translate(0, 0)';
+      }, 50);
+      break;
+    
+    case 'ripple':
+      newLayer.className = 'ripple-transition';
+      container.appendChild(newLayer);
+      break;
+    
+    case 'pageTurn':
+      newLayer.className = 'page-turn-transition';
+      container.appendChild(newLayer);
+      currentLayer.style.backfaceVisibility = 'hidden';
+      break;
+    
+    case 'brush':
+      newLayer.className = 'brush-transition';
+      container.appendChild(newLayer);
+      break;
+    
+    case 'swirl':
+      newLayer.className = 'swirl-transition';
+      container.appendChild(newLayer);
+      break;
+  }
+  
+  setTimeout(() => {
+    currentLayer.remove();
+    newLayer.className = 'colorLayer';
+    container.style.perspective = '';
+    container.style.transformStyle = '';
+  }, 800);
 }
 
 function changeColors() {
@@ -169,64 +347,8 @@ function changeColors() {
       speak(previousLeftColor);
     }
   }
-}
 
-function applyTransition(elementId, newColor) {
-  const container = document.getElementById(elementId);
-  const currentLayer = container.querySelector('.colorLayer');
-  const newLayer = document.createElement('div');
-  
-  newLayer.className = 'wipe-transition';
-  newLayer.style.backgroundColor = newColor;
-  
-  const directions = ['left', 'right', 'top', 'bottom'];
-  const direction = directions[Math.floor(Math.random() * directions.length)];
-  
-  switch(direction) {
-    case 'left':
-      newLayer.style.transform = 'translateX(100%)';
-      break;
-    case 'right':
-      newLayer.style.transform = 'translateX(-100%)';
-      break;
-    case 'top':
-      newLayer.style.transform = 'translateY(100%)';
-      break;
-    case 'bottom':
-      newLayer.style.transform = 'translateY(-100%)';
-      break;
-  }
-  
-  container.appendChild(newLayer);
-  
-  setTimeout(() => {
-    newLayer.style.transform = 'translate(0, 0)';
-  }, 50);
-  
-  setTimeout(() => {
-    currentLayer.remove();
-    newLayer.className = 'colorLayer';
-  }, 550);
-}
-
-function applyFadeTransition(elementId, newColor) {
-  const container = document.getElementById(elementId);
-  const currentLayer = container.querySelector('.colorLayer');
-  const newLayer = document.createElement('div');
-  
-  newLayer.className = 'colorLayer';
-  newLayer.style.backgroundColor = newColor;
-  newLayer.style.opacity = '0';
-  container.appendChild(newLayer);
-  
-  setTimeout(() => {
-    newLayer.style.opacity = '1';
-    currentLayer.style.opacity = '0';
-  }, 50);
-  
-  setTimeout(() => {
-    currentLayer.remove();
-  }, 550);
+  requestFullscreen();
 }
 
 function startApp() {
@@ -235,7 +357,8 @@ function startApp() {
     document.getElementById('introScreen').style.display = 'none';
     currentLeftColor = getRandomColor();
     currentRightColor = getRandomColor(currentLeftColor);
-    applyFadeTransition('leftColor', currentLeftColor);
+    applyTransition('leftColor', currentLeftColor);
+    requestFullscreen();
   }
 }
 
@@ -273,7 +396,12 @@ function toggleTwoColorMode() {
 
 function returnToIntro() {
   isIntroScreen = true;
-  document.getElementById('introScreen').style.display = 'flex';
+  const introScreen = document.getElementById('introScreen');
+  introScreen.style.display = 'flex';
+  const introRules = document.getElementById('introRules');
+  introRules.style.animation = 'none';
+  introRules.offsetHeight; // Trigger reflow
+  introRules.style.animation = null;
   document.getElementById('leftColor').innerHTML = '<div class="colorLayer"></div>';
   document.getElementById('rightColor').innerHTML = '<div class="colorLayer"></div>';
   document.getElementById('rightColor').style.display = 'none';
@@ -284,6 +412,35 @@ function returnToIntro() {
 
 function checkMobile() {
   isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  updateIntroRules();
+}
+
+function updateIntroRules() {
+  const introRules = document.getElementById('introRules');
+  introRules.innerHTML = `
+    <h3>Controls</h3>
+    <ul>
+      <li>▶️ <strong>Advance</strong>: ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
+      <li>🔄 <strong>Switch between single color mode and two-color mode</strong>: ${isMobile ? '✌️ Two-finger tap' : '⇧ Press the Shift key'}</li>
+      <li>🔊 <strong>Toggle sound</strong>: ${isMobile ? '👆⏳ Long press' : "🅢 Press the 'S' key"}</li>
+      <li>📜 <strong>Show these instructions</strong>: ${isMobile ? '🤟 Three-finger tap' : '🚪 Press Escape'}</li>
+    </ul>
+  `;
+}
+
+function requestFullscreen() {
+  const element = document.documentElement;
+  if (element.requestFullscreen) {
+    element.requestFullscreen().catch(err => {
+      console.log(`Error attempting to enable fullscreen: ${err.message}`);
+    });
+  } else if (element.mozRequestFullScreen) { // Firefox
+    element.mozRequestFullScreen();
+  } else if (element.webkitRequestFullscreen) { // Chrome, Safari and Opera
+    element.webkitRequestFullscreen();
+  } else if (element.msRequestFullscreen) { // IE/Edge
+    element.msRequestFullscreen();
+  }
 }
 
 document.body.addEventListener('mousedown', (event) => {
@@ -298,6 +455,7 @@ document.addEventListener('keydown', (event) => {
   if (!isMobile) {
     switch (event.code) {
       case 'Enter':
+      case 'Space':
         if (isIntroScreen) {
           startApp();
         } else {
@@ -305,18 +463,28 @@ document.addEventListener('keydown', (event) => {
         }
         break;
       case 'KeyS':
-        if (!isIntroScreen) {
-          toggleSound();
-        }
+        toggleSound(); // Allow sound toggling on intro screen
         break;
       case 'ShiftLeft':
       case 'ShiftRight':
-        if (!isIntroScreen) {
+        if (!isIntroScreen && !isShiftKeyDown) {
+          isShiftKeyDown = true;
           toggleTwoColorMode();
         }
         break;
       case 'Escape':
         returnToIntro();
+        break;
+    }
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (!isMobile) {
+    switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        isShiftKeyDown = false;
         break;
     }
   }
@@ -331,6 +499,14 @@ document.body.addEventListener('touchstart', (event) => {
 
   if (isIntroScreen) {
     introTapStarted = true;
+    if (touchCount === 1) {
+      longPressTimer = setTimeout(() => {
+        if (touchCount === 1) {
+          isLongPress = true;
+          toggleSound();
+        }
+      }, LONG_PRESS_DURATION);
+    }
     return;
   }
 
@@ -349,10 +525,11 @@ document.body.addEventListener('touchend', (event) => {
   clearTimeout(longPressTimer);
 
   if (isIntroScreen) {
-    if (introTapStarted) {
+    if (introTapStarted && !isLongPress && touchCount === 1) {
       startApp();
-      introTapStarted = false;
     }
+    introTapStarted = false;
+    isLongPress = false;
     return;
   }
 
