@@ -54,7 +54,17 @@
     left: 0;
     width: 100%;
     height: 100%;
-    transition: transform 0.5s ease;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+  }
+
+  @keyframes zoomIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+  }
+
+  @keyframes rotateIn {
+    from { transform: rotate(-180deg) scale(0); }
+    to { transform: rotate(0) scale(1); }
   }
 
   #introScreen {
@@ -151,66 +161,6 @@
     from { opacity: 0; }
     to { opacity: 1; }
   }
-
-  @keyframes ripple {
-    0% { transform: scale(0); opacity: 0; }
-    50% { transform: scale(1.5); opacity: 1; }
-    100% { transform: scale(2); opacity: 0; }
-  }
-
-  @keyframes pageTurn {
-    0% { transform: perspective(1200px) rotateY(0); }
-    100% { transform: perspective(1200px) rotateY(-180deg); }
-  }
-
-  @keyframes brush {
-    0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
-    100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-  }
-
-  @keyframes swirl {
-    0% { transform: rotate(0) scale(1); opacity: 1; }
-    100% { transform: rotate(720deg) scale(0); opacity: 0; }
-  }
-
-  .ripple-transition {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 300%;
-    height: 300%;
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    animation: ripple 0.8s ease-out;
-  }
-
-  .page-turn-transition {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    animation: pageTurn 0.8s ease-in-out;
-    backface-visibility: hidden;
-  }
-
-  .brush-transition {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    animation: brush 0.8s ease-in-out;
-  }
-
-  .swirl-transition {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    animation: swirl 0.8s ease-in-out;
-  }
 </style>
 </head>
 <body>
@@ -252,74 +202,6 @@ function getRandomColor(currentLeftColor, currentRightColor) {
   return newColor;
 }
 
-function applyTransition(elementId, newColor) {
-  const container = document.getElementById(elementId);
-  const currentLayer = container.querySelector('.colorLayer');
-  const newLayer = document.createElement('div');
-  
-  const transitions = ['swirl'];
-  const transition = transitions[Math.floor(Math.random() * transitions.length)];
-  
-  newLayer.style.backgroundColor = newColor;
-  
-  switch(transition) {
-    case 'wipe':
-      newLayer.className = 'wipe-transition';
-      const directions = ['left', 'right', 'top', 'bottom'];
-      const direction = directions[Math.floor(Math.random() * directions.length)];
-      
-      switch(direction) {
-        case 'left':
-          newLayer.style.transform = 'translateX(100%)';
-          break;
-        case 'right':
-          newLayer.style.transform = 'translateX(-100%)';
-          break;
-        case 'top':
-          newLayer.style.transform = 'translateY(100%)';
-          break;
-        case 'bottom':
-          newLayer.style.transform = 'translateY(-100%)';
-          break;
-      }
-      
-      container.appendChild(newLayer);
-      
-      setTimeout(() => {
-        newLayer.style.transform = 'translate(0, 0)';
-      }, 50);
-      break;
-    
-    case 'ripple':
-      newLayer.className = 'ripple-transition';
-      container.appendChild(newLayer);
-      break;
-    
-    case 'pageTurn':
-      newLayer.className = 'page-turn-transition';
-      container.appendChild(newLayer);
-      currentLayer.style.backfaceVisibility = 'hidden';
-      break;
-    
-    case 'brush':
-      newLayer.className = 'brush-transition';
-      container.appendChild(newLayer);
-      break;
-    
-    case 'swirl':
-      newLayer.className = 'swirl-transition';
-      container.appendChild(newLayer);
-      break;
-  }
-  
-  setTimeout(() => {
-    currentLayer.remove();
-    newLayer.className = 'colorLayer';
-    container.style.perspective = '';
-    container.style.transformStyle = '';
-  }, 800);
-}
-
 function changeColors() {
   if (isIntroScreen) return;
 
@@ -351,13 +233,111 @@ function changeColors() {
   requestFullscreen();
 }
 
+function applyTransition(elementId, newColor) {
+  const container = document.getElementById(elementId);
+  const currentLayer = container.querySelector('.colorLayer');
+  const newLayer = document.createElement('div');
+  
+  newLayer.className = 'wipe-transition';
+  newLayer.style.backgroundColor = newColor;
+  
+  const effects = ['diagonalWipe'];
+  const effect = effects[Math.floor(Math.random() * effects.length)];
+  
+  switch(effect) {
+    case 'slide':
+      applySlideTransition(newLayer);
+      break;
+    case 'zoom':
+      newLayer.style.transform = 'scale(0)';
+      newLayer.style.opacity = '0';
+      break;
+    case 'rotate':
+      newLayer.style.transform = 'rotate(-180deg) scale(0)';
+      newLayer.style.opacity = '0';
+      break;
+    case 'diagonalWipe':
+      newLayer.style.clipPath = 'polygon(100% 0, 100% 0, 100% 100%, 100% 100%)';
+      break;
+  }
+  
+  container.appendChild(newLayer);
+  
+  setTimeout(() => {
+    switch(effect) {
+      case 'slide':
+        newLayer.style.transform = 'translate(0, 0)';
+        break;
+      case 'zoom':
+        newLayer.style.transform = 'scale(1)';
+        newLayer.style.opacity = '1';
+        break;
+      case 'rotate':
+        newLayer.style.transform = 'rotate(0) scale(1)';
+        newLayer.style.opacity = '1';
+        break;
+      case 'diagonalWipe':
+        newLayer.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
+        break;
+    }
+  }, 50);
+  
+  setTimeout(() => {
+    currentLayer.remove();
+    newLayer.className = 'colorLayer';
+    if (effect === 'diagonalWipe') {
+      newLayer.style.clipPath = 'none';
+    }
+  }, 550);
+}
+
+function applySlideTransition(newLayer) {
+  const directions = ['Left', 'Right', 'Top', 'Bottom'];
+  const direction = directions[Math.floor(Math.random() * directions.length)];
+  
+  switch(direction) {
+    case 'Left':
+      newLayer.style.transform = 'translateX(100%)';
+      break;
+    case 'Right':
+      newLayer.style.transform = 'translateX(-100%)';
+      break;
+    case 'Top':
+      newLayer.style.transform = 'translateY(100%)';
+      break;
+    case 'Bottom':
+      newLayer.style.transform = 'translateY(-100%)';
+      break;
+  }
+}
+
+function applyFadeTransition(elementId, newColor) {
+  const container = document.getElementById(elementId);
+  const currentLayer = container.querySelector('.colorLayer');
+  const newLayer = document.createElement('div');
+  
+  newLayer.className = 'colorLayer';
+  newLayer.style.backgroundColor = newColor;
+  newLayer.style.opacity = '0';
+  container.appendChild(newLayer);
+  
+  setTimeout(() => {
+    newLayer.style.opacity = '1';
+    currentLayer.style.opacity = '0';
+  }, 50);
+  
+  setTimeout(() => {
+    currentLayer.remove();
+  }, 550);
+}
+
 function startApp() {
   if (isIntroScreen) {
     isIntroScreen = false;
     document.getElementById('introScreen').style.display = 'none';
     currentLeftColor = getRandomColor();
     currentRightColor = getRandomColor(currentLeftColor);
-    applyTransition('leftColor', currentLeftColor);
+    applyFadeTransition('leftColor', currentLeftColor);
     requestFullscreen();
   }
 }
@@ -420,7 +400,7 @@ function updateIntroRules() {
   introRules.innerHTML = `
     <h3>Controls</h3>
     <ul>
-      <li>▶️ <strong>Advance</strong>: ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
+      <li>▶️ <strong>Advance</strong> (with playful transitions): ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
       <li>🔄 <strong>Switch between single color mode and two-color mode</strong>: ${isMobile ? '✌️ Two-finger tap' : '⇧ Press the Shift key'}</li>
       <li>🔊 <strong>Toggle sound</strong>: ${isMobile ? '👆⏳ Long press' : "🅢 Press the 'S' key"}</li>
       <li>📜 <strong>Show these instructions</strong>: ${isMobile ? '🤟 Three-finger tap' : '🚪 Press Escape'}</li>
