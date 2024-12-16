@@ -162,11 +162,32 @@
     from { opacity: 0; }
     to { opacity: 1; }
   }
+  
+  @keyframes rainbowMove {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  .rainbow-color {
+    background: linear-gradient(
+      to right,
+      red,
+      orange,
+      yellow,
+      green,
+      blue,
+      indigo,
+      violet,
+      red
+    );
+    background-size: 200% 100%;
+    animation: rainbowMove 10s linear infinite;
+  }
 </style>
 </head>
 <body>
 <div id="introScreen">
-  <div class="baloo-2-intro-title">Coloreka</div>
+  <div class="baloo-2-intro-title">Coloreka!</div>
   <div id="introRules"></div>
 </div>
 <div id="leftColor">
@@ -194,11 +215,17 @@ let introTapStarted = false;
 let lastModeSwitchTime = 0;
 const MODE_SWITCH_COOLDOWN = 300; // 300ms cooldown for mode switching
 let isShiftKeyDown = false;
+let colorChangesSinceIntro = 0;
 
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
   do {
-    newColor = colors[Math.floor(Math.random() * colors.length)];
+    // Only allow rainbow after 5 changes since intro
+    if (colorChangesSinceIntro > 5 && Math.random() < 0.025) {
+      newColor = 'rainbow';
+    } else {
+      newColor = colors[Math.floor(Math.random() * colors.length)];
+    }
   } while (newColor === currentLeftColor || newColor === currentRightColor);
   return newColor;
 }
@@ -217,6 +244,8 @@ function changeColors() {
   
   currentLeftColor = getRandomColor(currentLeftColor, currentRightColor);
   currentRightColor = getRandomColor(currentLeftColor, currentRightColor);
+
+  colorChangesSinceIntro++; // Increment counter
 
   applyTransition('leftColor', currentLeftColor);
   if (isTwoColorMode) {
@@ -240,7 +269,11 @@ function applyTransition(elementId, newColor) {
   const newLayer = document.createElement('div');
   
   newLayer.className = 'wipe-transition';
-  newLayer.style.backgroundColor = newColor;
+  if (newColor === 'rainbow') {
+    newLayer.classList.add('rainbow-color');
+  } else {
+    newLayer.style.backgroundColor = newColor;
+  }
   
   const effects = ['slide', 'zoom', 'rotate', 'curl', 'spin'];
   const effect = effects[Math.floor(Math.random() * effects.length)];
@@ -294,6 +327,9 @@ function applyTransition(elementId, newColor) {
   setTimeout(() => {
     currentLayer.remove();
     newLayer.className = 'colorLayer';
+    if (newColor === 'rainbow') {
+      newLayer.classList.add('rainbow-color');
+    }
   }, 550);
 }
 
@@ -335,7 +371,12 @@ function applyFadeTransition(elementId, newColor) {
   const newLayer = document.createElement('div');
   
   newLayer.className = 'colorLayer';
-  newLayer.style.backgroundColor = newColor;
+  if (newColor === 'rainbow') {
+    newLayer.classList.add('rainbow-color');
+  } else {
+    newLayer.style.backgroundColor = newColor;
+  }
+  
   newLayer.style.opacity = '0';
   container.appendChild(newLayer);
   
@@ -394,6 +435,7 @@ function toggleTwoColorMode() {
 
 function returnToIntro() {
   isIntroScreen = true;
+  colorChangesSinceIntro = 0; // Reset counter
   const introScreen = document.getElementById('introScreen');
   introScreen.style.display = 'flex';
   const introRules = document.getElementById('introRules');
@@ -416,7 +458,7 @@ function checkMobile() {
 function updateIntroRules() {
   const introRules = document.getElementById('introRules');
   introRules.innerHTML = `
-    <h3>Controls</h3>
+    <h3>Controls!</h3>
     <ul>
       <li>▶️ <strong>Advance</strong>: ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
       <li>🔄 <strong>Switch between single color mode and two-color mode</strong>: ${isMobile ? '✌️ Two-finger tap' : '⇧ Press the Shift key'}</li>
