@@ -1,5 +1,5 @@
-<html><head><base href="https://websim.creation.engine/rgbyp-color-change-fullscreen-responsive/">
-<title>Coloreka - RGBYP Color Changer with Animated Intro Screen</title>
+<html><head>
+<title>Coloreka!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
@@ -460,10 +460,10 @@ function updateIntroRules() {
   introRules.innerHTML = `
     <h3>Controls!</h3>
     <ul>
-      <li>▶️ <strong>Advance</strong>: ${isMobile ? '👆 Tap' : '🖱️ Click on the screen, ↩️ press Enter, or ➖ press Spacebar'}</li>
-      <li>🔄 <strong>Switch between single color mode and two-color mode</strong>: ${isMobile ? '✌️ Two-finger tap' : '⇧ Press the Shift key'}</li>
-      <li>🔊 <strong>Toggle sound</strong>: ${isMobile ? '👆⏳ Long press' : "🅢 Press the 'S' key"}</li>
-      <li>📜 <strong>Show these instructions</strong>: ${isMobile ? '🤟 Three-finger tap' : '🚪 Press Escape'}</li>
+      <li>▶️ <strong>Advance</strong>: ${isMobile ? '<i>Tap</i>' : '<i>Click</i> on the screen, press <i>Enter</i>, or press <i>Spacebar</i>'}</li>
+      <li>🔄 <strong>Switch between single/two-color mode</strong>: ${isMobile ? '<i>Two-finger tap</i>' : 'Press the <i>Shift</i> key'}</li>
+      <li>🔊 <strong>Toggle sound</strong>: ${isMobile ? '<i>Long press</i>' : "Press the <i>S</i> key"}</li>
+      <li>📜 <strong>Show these instructions</strong>: ${isMobile ? '<i>Three-finger tap</i>' : 'Press <i>Escape</i>'}</li>
     </ul>
   `;
 }
