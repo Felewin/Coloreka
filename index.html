@@ -112,8 +112,13 @@
     color: transparent;
     -webkit-background-clip: text;
     background-clip: text;
+    opacity: 0;
     animation: rainbow 10s linear infinite;
     margin-bottom: 2vh;
+  }
+
+  .title-fade-in {
+    animation: fadeIn 2s ease-in-out, rainbow 10s linear infinite;
   }
 
   #introRules {
@@ -614,6 +619,12 @@ function returnToIntro() {
   colorChangesSinceIntro = 0; // Reset counter
   const introScreen = document.getElementById('introScreen');
   introScreen.style.display = 'flex';
+  const title = document.querySelector('.baloo-2-intro-title');
+  if (title) {
+    title.style.opacity = '1';
+    title.classList.remove('title-fade-in');
+  }
+  jiggleTitle();
   const introRules = document.getElementById('introRules');
   introRules.style.animation = 'none';
   introRules.offsetHeight; // Trigger reflow
@@ -800,6 +811,12 @@ document.body.addEventListener('touchmove', (event) => {
 
 window.addEventListener('resize', repositionRipplesToLastPointer);
 
-window.addEventListener('load', checkMobile);
+window.addEventListener('load', () => {
+  checkMobile();
+  const title = document.querySelector('.baloo-2-intro-title');
+  if (title) {
+    title.classList.add('title-fade-in');
+  }
+});
 </script>
 </body></html>
