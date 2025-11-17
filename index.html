@@ -127,6 +127,7 @@
     overflow-y: auto;
     max-height: 60vh;
     animation: fadeIn 2s ease-in-out;
+    position: relative;
   }
 
   #introRules h3 {
@@ -142,12 +143,25 @@
     margin-bottom: 1vh;
   }
 
+  .also-plays-text {
+    position: absolute;
+    top: 2vh;
+    right: 2vh;
+    font-size: 1.2vw;
+    color: #333;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+
   @media (orientation: portrait) {
     .baloo-2-intro-title {
       font-size: 16vw;
     }
     #introRules {
       font-size: 4vw;
+    }
+    .also-plays-text {
+      font-size: 4.8vw;
     }
   }
 
@@ -572,6 +586,9 @@ function returnToIntro() {
   isTwoColorMode = false;
   currentLeftColor = undefined;
   currentRightColor = undefined;
+  if (soundOn) {
+    speak("Coloreka!");
+  }
 }
 
 function checkMobile() {
@@ -582,12 +599,13 @@ function checkMobile() {
 function updateIntroRules() {
   const introRules = document.getElementById('introRules');
   introRules.innerHTML = `
-    <h3>Controls!</h3>
+    <div class="also-plays-text">${isMobile ? '🖥️ Also plays on desktop!' : '🤳 Also plays on mobile!'}</div>
+    <h3>${isMobile ? '🤳 Mobile Controls!' : '🖥️ Desktop Controls!'}</h3>
     <ul>
-      <li>▶️ <strong>Advance</strong>: ${isMobile ? '<i>Tap</i>' : '<i>Click</i> on the screen, press <i>Enter</i>, or press <i>Spacebar</i>'}</li>
-      <li>🔄 <strong>Switch between single/two-color mode</strong>: ${isMobile ? '<i>Two-finger tap</i>' : 'Press the <i>Shift</i> key'}</li>
-      <li>🔊 <strong>Toggle sound</strong>: ${isMobile ? '<i>Long press</i>' : "Press the <i>S</i> key"}</li>
-      <li>📜 <strong>Show these instructions</strong>: ${isMobile ? '<i>Three-finger tap</i>' : 'Press <i>Escape</i>'}</li>
+      <li>▶️ <strong>Advance</strong>! ${isMobile ? '<i>Tap</i>' : '<i>Click</i> on the screen, press <i>Enter</i>, or press <i>Spacebar</i>'}</li>
+      <li>🔄 <strong>Switch between single/two-color mode</strong>! ${isMobile ? '<i>Two-finger tap</i>' : 'Press the <i>Shift</i> key'}</li>
+      <li>🔊 <strong>Toggle sound</strong>! ${isMobile ? '<i>Long press</i>' : "Press the <i>S</i> key"}</li>
+      <li>📜 <strong>Show these instructions</strong>! ${isMobile ? '<i>Three-finger tap</i>' : 'Press <i>Escape</i>'}</li>
     </ul>
   `;
 }
@@ -647,6 +665,9 @@ document.addEventListener('keydown', (event) => {
           returnToIntro();
         } else {
           jiggleTitle();
+          if (soundOn) {
+            speak("Coloreka!");
+          }
         }
         break;
     }
