@@ -39,6 +39,17 @@
     display: none;
   }
 
+  .ripple {
+    position: fixed;
+    pointer-events: none;
+    border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
+    animation: rippleExpand 800ms ease-out forwards;
+    z-index: 1100;
+    mix-blend-mode: screen;
+  }
+
   .colorLayer {
     position: absolute;
     top: 0;
@@ -168,6 +179,24 @@
     100% { background-position: 200% 50%; }
   }
 
+  @keyframes rippleExpand {
+    0% {
+      opacity: 0;
+      transform: scale(0.15);
+      filter: blur(2px);
+    }
+    20% {
+      opacity: 1;
+      transform: scale(1.3);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(9);
+      filter: blur(2px);
+    }
+  }
+
   .rainbow-color {
     background: linear-gradient(
       to right,
@@ -199,6 +228,7 @@
 
 <script>
 const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
+const rippleColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#E964FF', '#FFA1C9'];
 let currentLeftColor, currentRightColor;
 let soundOn = true;
 let touchStartTime = 0;
@@ -216,6 +246,9 @@ let lastModeSwitchTime = 0;
 const MODE_SWITCH_COOLDOWN = 300; // 300ms cooldown for mode switching
 let isShiftKeyDown = false;
 let colorChangesSinceIntro = 0;
+let lastPointerPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+let lastPointerRatio = { x: 0.5, y: 0.5 };
+let rippleFollowHandle = null;
 
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
@@ -413,6 +446,77 @@ function toggleSound() {
   speak(soundOn ? "Sound on" : "Sound off");
 }
 
+function updatePointerPosition(x, y) {
+  if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) return;
+  const clampedX = Math.max(0, Math.min(window.innerWidth, x));
+  const clampedY = Math.max(0, Math.min(window.innerHeight, y));
+  lastPointerPosition = { x: clampedX, y: clampedY };
+  lastPointerRatio = {
+    x: window.innerWidth ? clampedX / window.innerWidth : 0,
+    y: window.innerHeight ? clampedY / window.innerHeight : 0
+  };
+}
+
+function getPointerPositionFromRatio() {
+  return {
+    x: window.innerWidth * lastPointerRatio.x,
+    y: window.innerHeight * lastPointerRatio.y
+  };
+}
+
+function positionRipplesAt(x, y) {
+  document.querySelectorAll('.ripple').forEach(ripple => {
+    const size = parseFloat(ripple.dataset.size) || ripple.offsetWidth || 0;
+    if (!size) return;
+    ripple.style.left = `${x - size / 2}px`;
+    ripple.style.top = `${y - size / 2}px`;
+  });
+}
+
+function followRipplesToPointer() {
+  positionRipplesAt(lastPointerPosition.x, lastPointerPosition.y);
+  if (document.querySelector('.ripple')) {
+    rippleFollowHandle = window.requestAnimationFrame(followRipplesToPointer);
+  } else {
+    rippleFollowHandle = null;
+  }
+}
+
+function ensureRippleFollowerRunning() {
+  if (rippleFollowHandle !== null) return;
+  rippleFollowHandle = window.requestAnimationFrame(followRipplesToPointer);
+}
+
+function repositionRipplesToLastPointer() {
+  const { x, y } = getPointerPositionFromRatio();
+  lastPointerPosition = { x, y };
+  positionRipplesAt(x, y);
+}
+
+function createRipple(x, y) {
+  if (typeof x !== 'number' || typeof y !== 'number') return;
+
+  updatePointerPosition(x, y);
+
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple';
+
+  const size = 40 + Math.random() * 60;
+  ripple.style.width = `${size}px`;
+  ripple.style.height = `${size}px`;
+  ripple.style.left = `${x - size / 2}px`;
+  ripple.style.top = `${y - size / 2}px`;
+  ripple.dataset.size = size;
+
+  const color = rippleColors[Math.floor(Math.random() * rippleColors.length)];
+  ripple.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
+  ripple.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+
+  document.body.appendChild(ripple);
+  ensureRippleFollowerRunning();
+  setTimeout(() => ripple.remove(), 850);
+}
+
 function toggleTwoColorMode() {
   const currentTime = new Date().getTime();
   if (currentTime - lastModeSwitchTime < MODE_SWITCH_COOLDOWN) {
@@ -484,9 +588,15 @@ function requestFullscreen() {
 }
 
 document.body.addEventListener('mousedown', (event) => {
-  if (isIntroScreen && !isMobile) {
+  if (isMobile) {
+    return;
+  }
+
+  createRipple(event.clientX, event.clientY);
+
+  if (isIntroScreen) {
     startApp();
-  } else if (!isMobile) {
+  } else {
     changeColors();
   }
 });
@@ -513,10 +623,19 @@ document.addEventListener('keydown', (event) => {
         }
         break;
       case 'Escape':
-        returnToIntro();
+        if (!isIntroScreen) {
+          returnToIntro();
+        }
         break;
     }
   }
+});
+
+document.addEventListener('mousemove', (event) => {
+  if (isMobile) {
+    return;
+  }
+  updatePointerPosition(event.clientX, event.clientY);
 });
 
 document.addEventListener('keyup', (event) => {
@@ -532,6 +651,9 @@ document.addEventListener('keyup', (event) => {
 
 document.body.addEventListener('touchstart', (event) => {
   event.preventDefault();
+  Array.from(event.changedTouches || []).forEach(touch => {
+    createRipple(touch.clientX, touch.clientY);
+  });
   touchStartTime = new Date().getTime();
   touchCount = event.touches.length;
   isLongPress = false;
@@ -583,6 +705,19 @@ document.body.addEventListener('touchend', (event) => {
 
   touchCount = 0;
 }, { passive: false });
+
+document.body.addEventListener('touchmove', (event) => {
+  const touch = event.touches && event.touches[0];
+  if (touch) {
+    updatePointerPosition(touch.clientX, touch.clientY);
+  }
+}, { passive: true });
+
+['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+  document.addEventListener(evt, repositionRipplesToLastPointer);
+});
+
+window.addEventListener('resize', repositionRipplesToLastPointer);
 
 window.addEventListener('load', checkMobile);
 </script>
