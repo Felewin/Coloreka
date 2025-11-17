@@ -827,7 +827,9 @@ document.body.addEventListener('touchend', (event) => {
   const completedTouches = touchCount;
 
   if (isIntroScreen) {
-    if (introTapStarted && !isLongPress && completedTouches === 1) {
+    if (completedTouches === 3) {
+      celebrateIntroScreen();
+    } else if (introTapStarted && !isLongPress && completedTouches === 1) {
       startApp();
     }
     introTapStarted = false;
@@ -841,11 +843,7 @@ document.body.addEventListener('touchend', (event) => {
   } else if (completedTouches === 1 && !isLongPress) {
     changeColors();
   } else if (completedTouches === 3) {
-    if (!isIntroScreen) {
-      returnToIntro();
-    } else {
-      celebrateIntroScreen();
-    }
+    returnToIntro();
   }
 
   touchCount = 0;
