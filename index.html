@@ -783,20 +783,28 @@ document.body.addEventListener('touchend', (event) => {
   });
   clearTimeout(longPressTimer);
 
+  const remainingTouches = event.touches.length;
+  if (remainingTouches > 0) {
+    return;
+  }
+
+  const completedTouches = touchCount;
+
   if (isIntroScreen) {
-    if (introTapStarted && !isLongPress && touchCount === 1) {
+    if (introTapStarted && !isLongPress && completedTouches === 1) {
       startApp();
     }
     introTapStarted = false;
     isLongPress = false;
+    touchCount = 0;
     return;
   }
 
-  if (touchCount === 2) {
+  if (completedTouches === 2) {
     toggleTwoColorMode();
-  } else if (touchCount === 1 && !isLongPress) {
+  } else if (completedTouches === 1 && !isLongPress) {
     changeColors();
-  } else if (touchCount === 3) {
+  } else if (completedTouches === 3) {
     returnToIntro();
   }
 
