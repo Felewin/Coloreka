@@ -159,6 +159,13 @@
     opacity: 0.8;
   }
 
+  .touch-ripple {
+    animation: none !important;
+    opacity: 0.7;
+    transform: none;
+    transition: transform 80ms ease, opacity 150ms ease;
+  }
+
   @media (orientation: portrait) {
     .baloo-2-intro-title {
       font-size: 16vw;
@@ -284,6 +291,7 @@ let lastPointerPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 
 let lastPointerRatio = { x: 0.5, y: 0.5 };
 let rippleFollowHandle = null;
 let lastSwishSound = null;
+const touchRipples = new Map();
 const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish (3).mp3', 'audio/Swish (4).mp3'];
 
 function getRandomColor(currentLeftColor, currentRightColor) {
@@ -596,6 +604,52 @@ function createRipple(x, y) {
   setTimeout(() => ripple.remove(), 850);
 }
 
+function getOrCreateTouchRipple(touch) {
+  let ripple = touchRipples.get(touch.identifier);
+  if (!ripple) {
+    ripple = document.createElement('div');
+    ripple.className = 'ripple touch-ripple';
+
+    const size = 70 + Math.random() * 40;
+    ripple.dataset.size = size;
+    ripple.style.width = `${size}px`;
+    ripple.style.height = `${size}px`;
+
+    const color = rippleColors[Math.floor(Math.random() * rippleColors.length)];
+    ripple.dataset.color = color;
+    ripple.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
+    ripple.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+
+    document.body.appendChild(ripple);
+    touchRipples.set(touch.identifier, ripple);
+  }
+  return ripple;
+}
+
+function positionTouchRipple(ripple, x, y) {
+  if (!ripple) return;
+  const size = parseFloat(ripple.dataset.size) || ripple.offsetWidth || 0;
+  ripple.style.left = `${x - size / 2}px`;
+  ripple.style.top = `${y - size / 2}px`;
+}
+
+function updateTouchRipplePositions(touches) {
+  Array.from(touches || []).forEach(touch => {
+    const ripple = getOrCreateTouchRipple(touch);
+    positionTouchRipple(ripple, touch.clientX, touch.clientY);
+  });
+}
+
+function removeTouchRipples(touches) {
+  Array.from(touches || []).forEach(touch => {
+    const ripple = touchRipples.get(touch.identifier);
+    if (ripple) {
+      ripple.remove();
+      touchRipples.delete(touch.identifier);
+    }
+  });
+}
+
 function toggleTwoColorMode() {
   const currentTime = new Date().getTime();
   if (currentTime - lastModeSwitchTime < MODE_SWITCH_COOLDOWN) {
@@ -749,6 +803,7 @@ document.body.addEventListener('touchstart', (event) => {
   Array.from(event.changedTouches || []).forEach(touch => {
     createRipple(touch.clientX, touch.clientY);
   });
+  updateTouchRipplePositions(event.changedTouches);
   touchStartTime = new Date().getTime();
   touchCount = event.touches.length;
   isLongPress = false;
@@ -780,6 +835,7 @@ document.body.addEventListener('touchstart', (event) => {
 document.body.addEventListener('touchend', (event) => {
   event.preventDefault();
   clearTimeout(longPressTimer);
+  removeTouchRipples(event.changedTouches);
 
   if (isIntroScreen) {
     if (introTapStarted && !isLongPress && touchCount === 1) {
@@ -802,10 +858,15 @@ document.body.addEventListener('touchend', (event) => {
 }, { passive: false });
 
 document.body.addEventListener('touchmove', (event) => {
+  updateTouchRipplePositions(event.touches);
   const touch = event.touches && event.touches[0];
   if (touch) {
     updatePointerPosition(touch.clientX, touch.clientY);
   }
+}, { passive: true });
+
+document.body.addEventListener('touchcancel', (event) => {
+  removeTouchRipples(event.changedTouches);
 }, { passive: true });
 
 ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
