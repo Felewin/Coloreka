@@ -320,6 +320,17 @@ let rippleFollowHandle = null;
 let lastSwishSound = null;
 const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish (3).mp3', 'audio/Swish (4).mp3'];
 
+function setLayerColor(layer, color) {
+  if (!layer) return;
+  layer.classList.remove('rainbow-color');
+  if (color === 'rainbow') {
+    layer.classList.add('rainbow-color');
+    layer.style.backgroundColor = '';
+  } else {
+    layer.style.backgroundColor = color;
+  }
+}
+
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
   do {
@@ -376,14 +387,10 @@ function applyTransition(elementId, newColor) {
   const container = document.getElementById(elementId);
   const currentLayer = container.querySelector('.colorLayer');
   const newLayer = document.createElement('div');
-  
+
   newLayer.className = 'wipe-transition';
-  if (newColor === 'rainbow') {
-    newLayer.classList.add('rainbow-color');
-  } else {
-    newLayer.style.backgroundColor = newColor;
-  }
-  
+  setLayerColor(newLayer, newColor);
+
   const effects = ['slide', 'zoom', 'rotate', 'curl', 'spin'];
   const effect = effects[Math.floor(Math.random() * effects.length)];
   
@@ -436,9 +443,7 @@ function applyTransition(elementId, newColor) {
   setTimeout(() => {
     currentLayer.remove();
     newLayer.className = 'colorLayer';
-    if (newColor === 'rainbow') {
-      newLayer.classList.add('rainbow-color');
-    }
+    setLayerColor(newLayer, newColor);
   }, 550);
 }
 
@@ -478,13 +483,9 @@ function applyFadeTransition(elementId, newColor) {
   const container = document.getElementById(elementId);
   const currentLayer = container.querySelector('.colorLayer');
   const newLayer = document.createElement('div');
-  
+
   newLayer.className = 'colorLayer';
-  if (newColor === 'rainbow') {
-    newLayer.classList.add('rainbow-color');
-  } else {
-    newLayer.style.backgroundColor = newColor;
-  }
+  setLayerColor(newLayer, newColor);
   
   newLayer.style.opacity = '0';
   container.appendChild(newLayer);
@@ -656,15 +657,15 @@ function toggleTwoColorMode() {
 
   isTwoColorMode = !isTwoColorMode;
   const rightColorElement = document.getElementById('rightColor');
-  if (isTwoColorMode) {
-    rightColorElement.style.display = 'block';
-    if (!currentRightColor || currentRightColor === currentLeftColor) {
-      currentRightColor = getRandomColor(currentLeftColor, currentLeftColor);
+    if (isTwoColorMode) {
+      rightColorElement.style.display = 'block';
+      if (!currentRightColor || currentRightColor === currentLeftColor) {
+        currentRightColor = getRandomColor(currentLeftColor, currentLeftColor);
+      }
+      setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
+    } else {
+      rightColorElement.style.display = 'none';
     }
-    rightColorElement.querySelector('.colorLayer').style.backgroundColor = currentRightColor;
-  } else {
-    rightColorElement.style.display = 'none';
-  }
 }
 
 function returnToIntro() {
