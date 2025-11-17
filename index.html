@@ -547,6 +547,8 @@ function positionRipplesAt(x, y) {
 function jiggleTitle() {
   const title = document.querySelector('.baloo-2-intro-title');
   if (title) {
+    title.classList.remove('title-fade-in');
+    title.style.opacity = '1';
     title.classList.add('jiggle');
     setTimeout(() => title.classList.remove('jiggle'), 300);
   }
