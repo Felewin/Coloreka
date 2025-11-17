@@ -320,6 +320,14 @@ let rippleFollowHandle = null;
 let lastSwishSound = null;
 const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish (3).mp3', 'audio/Swish (4).mp3'];
 
+function playAudio(src, volume = 0.05) {
+  const audio = new Audio(src);
+  audio.volume = volume;
+  audio.play().catch(err => {
+    console.log(`Error playing sound: ${err.message}`);
+  });
+}
+
 function setLayerColor(layer, color) {
   if (!layer) return;
   layer.classList.remove('rainbow-color');
@@ -526,19 +534,11 @@ function playSwishSound() {
   const randomSound = availableSounds[Math.floor(Math.random() * availableSounds.length)];
   lastSwishSound = randomSound;
 
-  const audio = new Audio(randomSound);
-  audio.volume = 0.05; // 5% volume
-  audio.play().catch(err => {
-    console.log(`Error playing sound: ${err.message}`);
-  });
+  playAudio(randomSound);
 }
 
 function playGongSound() {
-  const audio = new Audio('audio/Gong.mp3');
-  audio.volume = 0.05; // 5% volume
-  audio.play().catch(err => {
-    console.log(`Error playing gong sound: ${err.message}`);
-  });
+  playAudio('audio/Gong.mp3');
 }
 
 function vibrateGentle() {
