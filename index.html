@@ -507,7 +507,7 @@ function vibrateGentle() {
 
 function toggleSound() {
   soundOn = !soundOn;
-  speak(soundOn ? "Sound on" : "Sound off");
+  speak(soundOn ? "Saying the colors" : "muted");
 }
 
 function updatePointerPosition(x, y) {
@@ -642,7 +642,7 @@ function updateIntroRules() {
     <ul>
       <li>▶️ <strong>Advance</strong>! ${isMobile ? '<i>Tap</i>' : '<i>Click</i> on the screen, press <i>Enter</i>, or press <i>Spacebar</i>'}</li>
       <li>🔄 <strong>Switch between single/two-color mode</strong>! ${isMobile ? '<i>Two-finger tap</i>' : 'Press the <i>Shift</i> key'}</li>
-      <li>🔊 <strong>Toggle sound</strong>! ${isMobile ? '<i>Long press</i>' : "Press the <i>S</i> key"}</li>
+      <li>🔊 <strong>Toggle saying the colors</strong>! ${isMobile ? '<i>Long press</i>' : "Press the <i>S</i> key"}</li>
       <li>📜 <strong>Show these instructions</strong>! ${isMobile ? '<i>Three-finger tap</i>' : 'Press <i>Escape</i>'}</li>
     </ul>
   `;
