@@ -552,6 +552,13 @@ function jiggleTitle() {
   }
 }
 
+function celebrateIntroScreen() {
+  jiggleTitle();
+  if (soundOn) {
+    speak("Coloreka!");
+  }
+}
+
 function followRipplesToPointer() {
   positionRipplesAt(lastPointerPosition.x, lastPointerPosition.y);
   if (document.querySelector('.ripple')) {
@@ -718,10 +725,7 @@ document.addEventListener('keydown', (event) => {
         if (!isIntroScreen) {
           returnToIntro();
         } else {
-          jiggleTitle();
-          if (soundOn) {
-            speak("Coloreka!");
-          }
+          celebrateIntroScreen();
         }
         break;
     }
@@ -805,7 +809,11 @@ document.body.addEventListener('touchend', (event) => {
   } else if (completedTouches === 1 && !isLongPress) {
     changeColors();
   } else if (completedTouches === 3) {
-    returnToIntro();
+    if (!isIntroScreen) {
+      returnToIntro();
+    } else {
+      celebrateIntroScreen();
+    }
   }
 
   touchCount = 0;
