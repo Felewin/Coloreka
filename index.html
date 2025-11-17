@@ -620,7 +620,7 @@ function createRipple(x, y, followPointer = true) {
   ripple.style.top = `${y - size / 2}px`;
   ripple.dataset.size = size;
 
-  const color = rippleColors[Math.floor(Math.random() * rippleColors.length)];
+  const color = 'white';
   ripple.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
   
   // Simpler shadow for mobile
