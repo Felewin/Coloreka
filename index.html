@@ -317,6 +317,9 @@ function changeColors() {
   // Play swish sound when advancing
   playSwishSound();
 
+  // Gentle vibration when advancing
+  vibrateGentle();
+
   if (soundOn) {
     if (isTwoColorMode) {
       speak(`${previousLeftColor} and ${previousRightColor}`);
@@ -494,6 +497,12 @@ function playGongSound() {
   audio.play().catch(err => {
     console.log(`Error playing gong sound: ${err.message}`);
   });
+}
+
+function vibrateGentle() {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(30); // Gentle 30ms vibration
+  }
 }
 
 function toggleSound() {
