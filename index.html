@@ -197,6 +197,18 @@
     }
   }
 
+  @keyframes titleJiggle {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.1) rotate(2deg); }
+    50% { transform: scale(1.05) rotate(-1deg); }
+    75% { transform: scale(1.08) rotate(1deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  .jiggle {
+    animation: titleJiggle 300ms ease-in-out;
+  }
+
   .rainbow-color {
     background: linear-gradient(
       to right,
@@ -473,6 +485,14 @@ function positionRipplesAt(x, y) {
   });
 }
 
+function jiggleTitle() {
+  const title = document.querySelector('.baloo-2-intro-title');
+  if (title) {
+    title.classList.add('jiggle');
+    setTimeout(() => title.classList.remove('jiggle'), 300);
+  }
+}
+
 function followRipplesToPointer() {
   positionRipplesAt(lastPointerPosition.x, lastPointerPosition.y);
   if (document.querySelector('.ripple')) {
@@ -625,6 +645,8 @@ document.addEventListener('keydown', (event) => {
       case 'Escape':
         if (!isIntroScreen) {
           returnToIntro();
+        } else {
+          jiggleTitle();
         }
         break;
     }
