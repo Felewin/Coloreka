@@ -168,6 +168,8 @@
     }
     .also-plays-text {
       font-size: 4.8vw;
+      top: auto;
+      bottom: 2vh;
     }
   }
 
@@ -506,7 +508,7 @@ function playGongSound() {
 
 function vibrateGentle() {
   if ('vibrate' in navigator) {
-    navigator.vibrate(30); // Gentle 30ms vibration
+    navigator.vibrate(100); // 100ms vibration for better noticeability
   }
 }
 
