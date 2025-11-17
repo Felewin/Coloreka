@@ -592,7 +592,7 @@ function createRipple(x, y, followPointer = true) {
   ripple.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
 
   document.body.appendChild(ripple);
-  if (followPointer) {
+  if (followPointer && !isMobile) {
     ensureRippleFollowerRunning();
   }
   setTimeout(() => ripple.remove(), 850);
