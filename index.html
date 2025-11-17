@@ -276,6 +276,8 @@ let colorChangesSinceIntro = 0;
 let lastPointerPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 let lastPointerRatio = { x: 0.5, y: 0.5 };
 let rippleFollowHandle = null;
+let lastSwishSound = null;
+const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish (3).mp3', 'audio/Swish (4).mp3'];
 
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
@@ -311,7 +313,10 @@ function changeColors() {
   if (isTwoColorMode) {
     applyTransition('rightColor', currentRightColor);
   }
-  
+
+  // Play swish sound when advancing
+  playSwishSound();
+
   if (soundOn) {
     if (isTwoColorMode) {
       speak(`${previousLeftColor} and ${previousRightColor}`);
@@ -458,6 +463,9 @@ function startApp() {
     currentRightColor = getRandomColor(currentLeftColor);
     applyFadeTransition('leftColor', currentLeftColor);
     requestFullscreen();
+
+    // Play gong sound when advancing from menu
+    playGongSound();
   }
 }
 
@@ -466,6 +474,26 @@ function speak(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.volume = 0.25;
   speechSynthesis.speak(utterance);
+}
+
+function playSwishSound() {
+  let availableSounds = swishSounds.filter(sound => sound !== lastSwishSound);
+  const randomSound = availableSounds[Math.floor(Math.random() * availableSounds.length)];
+  lastSwishSound = randomSound;
+
+  const audio = new Audio(randomSound);
+  audio.volume = 0.05; // 5% volume
+  audio.play().catch(err => {
+    console.log(`Error playing sound: ${err.message}`);
+  });
+}
+
+function playGongSound() {
+  const audio = new Audio('audio/Gong.mp3');
+  audio.volume = 0.05; // 5% volume
+  audio.play().catch(err => {
+    console.log(`Error playing gong sound: ${err.message}`);
+  });
 }
 
 function toggleSound() {
