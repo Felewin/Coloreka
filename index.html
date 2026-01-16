@@ -294,6 +294,7 @@
   <div class="colorLayer"></div>
 </div>
 
+
 <script>
 const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
 const rippleColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#E964FF', '#FFA1C9'];
@@ -319,6 +320,41 @@ let lastPointerRatio = { x: 0.5, y: 0.5 };
 let rippleFollowHandle = null;
 let lastSwishSound = null;
 const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish (3).mp3', 'audio/Swish (4).mp3'];
+/* DISABLED: Cloud TTS functionality - disabled due to high latency
+// Coloreka cloud TTS service endpoint - provides high-quality text-to-speech with expressive voices
+// May be rate limited or unavailable, in which case the app falls back to device's built-in voice
+const TTS_SERVICE_URL = 'https://steep-sound-5d19.hunterbobeck.workers.dev';
+*/
+
+// Tracks the currently playing audio from the cloud TTS service
+// Used to stop playback if a new voice request comes in (either cloud or device voice)
+// This ensures only one voice plays at a time and prevents overlapping audio
+let currentAIAudio = null;
+
+/* DISABLED: Cloud TTS functionality - disabled due to high latency
+// Debug function to test Worker directly - call testWorker() in console
+window.testWorker = async function() {
+  console.log('Testing Worker...');
+  try {
+    const response = await fetch(TTS_SERVICE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'test' }),
+    });
+    console.log('Status:', response.status);
+    console.log('Headers:', Object.fromEntries(response.headers.entries()));
+    if (response.status === 200) {
+      const blob = await response.blob();
+      console.log('Success! Audio blob size:', blob.size, 'bytes');
+    } else {
+      const text = await response.text();
+      console.log('Response body:', text);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+*/
 
 function playAudio(src, volume = 0.05) {
   const audio = new Audio(src);
@@ -382,7 +418,7 @@ function changeColors() {
 
   if (soundOn) {
     if (isTwoColorMode) {
-      speak(`${previousLeftColor} and ${previousRightColor}`);
+      speak(`${previousLeftColor} and ${previousRightColor}`, true); // Always use device voice in two color mode
     } else {
       speak(previousLeftColor);
     }
@@ -522,11 +558,323 @@ function startApp() {
   }
 }
 
-function speak(text) {
+/**
+ * Attempts to use the Coloreka cloud TTS service to generate and play speech audio.
+ * 
+ * DISABLED: Cloud TTS functionality has been disabled due to high latency.
+ * This function now immediately returns false to use device voice instead.
+ * 
+ * @param {string} text - The text to convert to speech
+ * @returns {Promise<boolean>} - Returns false (disabled)
+ */
+async function speakWithCloudTTS(text) {
+  // DISABLED: Cloud TTS disabled due to high latency - always return false to use device voice
+  return false;
+  
+  /* DISABLED CODE BELOW - Cloud TTS functionality disabled due to high latency
+  // Voice interruption: Stop any currently playing cloud TTS audio
+  // This ensures that if a new voice request comes in while audio is playing,
+  // the old audio stops immediately so the new one can start
+  if (currentAIAudio) {
+    currentAIAudio.pause();
+    currentAIAudio.currentTime = 0;
+    currentAIAudio = null;
+  }
+  
+  // Voice interruption: Cancel any currently playing device voice
+  // This ensures cloud TTS audio can interrupt device voice playback
   speechSynthesis.cancel();
+  
+  // Track timing: Record when the request starts to measure response time
+  const requestStartTime = Date.now();
+  
+  try {
+    // Text transformation: Special handling for app title
+    // When the app title is spoken, replace it with a more descriptive phrase
+    // This provides better context for users learning the controls
+    if (text === 'Coloreka!' || text === 'Coloreka') {
+      text = 'Here are your controls';
+    }
+    
+    // Tone enhancement: Add expressive vocal direction tags
+    // The cloud TTS service supports tone modifiers in square brackets that affect
+    // how the voice sounds - making it more cheerful, encouraging, or friendly
+    // This creates a more engaging and supportive experience for users learning colors
+    const toneTags = ['[cheerful]'];
+    const randomTone = toneTags[Math.floor(Math.random() * toneTags.length)];
+    
+    // Content detection: Determine if the text is a color name
+    // Color names get special treatment with prefixes, while other text (like instructions)
+    // gets simpler formatting
+    const colorNames = ['red', 'green', 'blue', 'yellow', 'purple', 'rainbow'];
+    const isColor = colorNames.includes(text.toLowerCase());
+    
+    // Text enhancement: Add prefixes and exclamation points for more engaging speech
+    // For colors: Randomly select from weighted prefix options to add variety
+    //   - Empty prefix (just color name): ~27% chance - creates simple, direct statements
+    //   - "It was": ~27% chance - common, natural phrasing
+    //   - "That was": ~27% chance - common, natural phrasing  
+    //   - "The color was": ~9% chance - more descriptive, used less frequently
+    //   - "That one was": ~9% chance - more descriptive, used less frequently
+    // For non-colors: Just add tone tag and exclamation point (no prefix)
+    // All text gets an exclamation point for enthusiastic delivery
+    let excitedText;
+    if (isColor) {
+      // TEMPORARILY DISABLED: Prefixes for color pronunciation
+      // Weighted array: More instances of a prefix = higher probability of selection
+      // This creates natural variation while favoring more common phrases
+      // const prefixes = ['', '', '', 'It was ', 'It was ', 'It was ', 'That was ', 'That was ', 'That was ', 'The color was ', 'That one was '];
+      // const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      
+      // Spacing handling: If prefix is empty, don't add extra space after tone tag
+      // This ensures proper formatting whether prefix is present or not
+      // if (randomPrefix === '') {
+      //   excitedText = randomTone + ' ' + text + '!';
+      // } else {
+      //   excitedText = randomTone + ' ' + randomPrefix + text + '!';
+      // }
+      
+      // Temporary: No prefix, just tone tag and color name with exclamation
+      excitedText = randomTone + ' ' + text + '..!.';
+    } else {
+      // For non-color text (like instructions), just add tone tag and exclamation point
+      // No prefix is added to keep the message clear and direct
+      excitedText = randomTone + ' ' + text + ' ..!.';
+    }
+    
+    // Request audio from the Coloreka cloud TTS service
+    // The service processes the enhanced text (with tone tags and prefixes) and returns audio data
+    const response = await fetch(TTS_SERVICE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: excitedText,
+        model: 'canopylabs/orpheus-v1-english',
+        voice: 'hannah',
+        response_format: 'wav'
+      }),
+    });
+
+    // Success case: Cloud TTS service returned audio data (status 200)
+    // Process the audio and play it with fade-out to avoid trailing sounds
+    if (response.status === 200) {
+      // Convert the response to an audio blob that can be played
+      const audioBlob = await response.blob();
+      
+      // Create a temporary URL for the audio blob so it can be played
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.volume = 0.25;
+      
+      // Store reference to the audio object
+      // This allows us to stop playback if a new voice request comes in
+      // The reference is cleared when audio finishes or is stopped
+      currentAIAudio = audio;
+      
+      // Add error handler for audio playback
+      audio.addEventListener('error', (e) => {
+        currentAIAudio = null; // Clear reference on error
+      });
+      
+      // Start playing the audio
+      await audio.play();
+      
+      // Fade-out system: Smoothly reduce volume before the end to avoid trailing sounds
+      // Some audio files may contain unwanted sounds (sighs, snorts, etc.) at the very end
+      // By fading out slightly before the audio naturally ends, we cut off these artifacts
+      // while maintaining a smooth, natural-sounding conclusion
+      let isFadingOut = false;
+      const originalVolume = audio.volume; // Store original volume to restore for next playback
+      
+      // Monitor audio playback progress to trigger fade-out at the right time
+      audio.addEventListener('timeupdate', () => {
+        // Trigger fade-out when we're 200ms away from the end of the audio
+        // This gives us enough time to smoothly fade out before any trailing sounds
+        if (!isFadingOut && audio.duration && audio.currentTime >= audio.duration - 0.2) {
+          isFadingOut = true; // Mark that fade-out has started to prevent duplicate triggers
+          
+          // Fade-out parameters: Reduce volume to zero over 150ms
+          // This creates a smooth transition that's fast enough to cut off artifacts
+          // but slow enough to sound natural
+          const fadeOutDuration = 0.15;
+          const fadeOutStartTime = audio.currentTime;
+          const fadeOutStartVolume = audio.volume;
+          
+          // Smooth fade-out: Update volume every 10ms for fluid transition
+          // This creates a gradual volume reduction rather than an abrupt stop
+          const fadeOutInterval = setInterval(() => {
+            // Safety check: If audio was stopped externally, clean up and exit
+            if (audio.paused || audio.ended) {
+              clearInterval(fadeOutInterval);
+              return;
+            }
+            
+            // Calculate how far through the fade-out we are (0 to 1)
+            const elapsed = audio.currentTime - fadeOutStartTime;
+            if (elapsed >= fadeOutDuration) {
+              // Fade-out complete: Stop playback and clean up resources
+              audio.pause();
+              audio.currentTime = 0;
+              audio.volume = originalVolume; // Reset volume for next playback
+              clearInterval(fadeOutInterval);
+              currentAIAudio = null; // Clear reference so new audio can play
+              URL.revokeObjectURL(audioUrl); // Free up memory from blob URL
+            } else {
+              // Gradually reduce volume: Linear fade from start volume to zero
+              // Progress goes from 0 (start) to 1 (end), so (1 - progress) goes from 1 to 0
+              const progress = elapsed / fadeOutDuration;
+              audio.volume = fadeOutStartVolume * (1 - progress);
+            }
+          }, 10); // Update every 10ms for smooth fade (100 updates over 1 second)
+        }
+      });
+      
+      // Cleanup handler: If audio finishes naturally without fade-out triggering
+      // This handles edge cases where audio might be shorter than expected
+      // or if fade-out logic doesn't trigger for some reason
+      audio.addEventListener('ended', () => {
+        if (!isFadingOut) {
+          audio.volume = originalVolume; // Reset volume for next playback
+          currentAIAudio = null; // Clear reference so new audio can play
+          URL.revokeObjectURL(audioUrl); // Free up memory from blob URL
+        }
+      }, { once: true }); // Only fire once to prevent duplicate cleanup
+      
+      // Return success: Audio is now playing
+      return true;
+    } else {
+      // Non-success response: Cloud TTS service returned an error status
+      // This could be due to rate limiting, service unavailability, or invalid request
+      // Calculate and log response time
+      const responseTime = Date.now() - requestStartTime;
+      console.log(`Cloud TTS error after ${responseTime}ms`);
+      await response.text(); // Consume response body
+    }
+  } catch (error) {
+    // Network or request error: Failed to communicate with cloud TTS service
+    // This could be due to network issues, CORS problems, or service downtime
+    // Calculate and log response time
+    const responseTime = Date.now() - requestStartTime;
+    console.log(`Cloud TTS error after ${responseTime}ms`);
+  }
+  
+  // Failure case: Return false to indicate cloud TTS did not succeed
+  // The caller will use this to trigger fallback to device voice
+  return false;
+  */
+}
+
+/**
+ * Main speech function: Converts text to speech using device voice.
+ * 
+ * Cloud TTS functionality has been disabled due to high latency.
+ * All speech now uses the device's native text-to-speech engine.
+ * 
+ * @param {string} text - The text to convert to speech
+ * @param {boolean} useDeviceVoiceOnly - Deprecated parameter (kept for compatibility, always uses device voice)
+ */
+async function speak(text, useDeviceVoiceOnly = false) {
+  // Voice interruption: Stop any currently playing cloud TTS audio
+  // This ensures that when a new speech request comes in, any old audio stops immediately
+  // This prevents overlapping voices and ensures only the most recent request plays
+  if (currentAIAudio) {
+    currentAIAudio.pause();
+    currentAIAudio.currentTime = 0;
+    currentAIAudio = null;
+  }
+  
+  // Voice interruption: Cancel any currently playing device voice
+  // This ensures new requests can interrupt old ones
+  speechSynthesis.cancel();
+  
+  // Use device voice directly
+  // Cloud TTS disabled due to high latency - always use device voice for responsive experience
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.volume = 0.25;
   speechSynthesis.speak(utterance);
+  
+  /* DISABLED: Cloud TTS functionality - disabled due to high latency
+  // Timeout fallback system: Track whether we've already started device voice
+  // This flag prevents playing cloud audio if device voice already started due to timeout
+  let fallbackUsed = false;
+  
+  // Responsive timeout: If cloud TTS doesn't respond within 1200ms, use device voice
+  // This ensures speech always starts quickly, even if cloud service is slow or unavailable
+  // The timeout fires independently - we don't wait the full time then check duration
+  // Instead, as soon as 1200ms passes, device voice starts immediately
+  const timeoutId = setTimeout(() => {
+    // Timeout fired: Cloud TTS took too long, use device voice instead
+    // Log that response exceeded maximum wait time
+    console.log('Cloud TTS response exceeded maximum wait time (1200ms)');
+    fallbackUsed = true; // Mark that we're using fallback
+    
+    // Safety: Stop cloud audio if it somehow started playing during the timeout
+    // This prevents both voices playing simultaneously
+    if (currentAIAudio) {
+      currentAIAudio.pause();
+      currentAIAudio.currentTime = 0;
+      currentAIAudio = null;
+    }
+    
+    // Start device voice immediately - user gets speech without further delay
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.volume = 0.25;
+    speechSynthesis.speak(utterance);
+  }, 1200); // 1200ms timeout - fast enough to feel instant, slow enough for cloud to respond if available
+  
+  // Attempt cloud TTS: Request audio from cloud service
+  // This runs in parallel with the timeout - whichever completes first wins
+  try {
+    const cloudTTSSuccess = await speakWithCloudTTS(text);
+    
+    // Cloud TTS responded: Cancel the timeout since we got a response
+    // If timeout already fired, this does nothing (which is fine)
+    clearTimeout(timeoutId);
+    
+    // Check if timeout already triggered device voice
+    // If so, ignore the cloud response to prevent interrupting device voice
+    if (fallbackUsed) {
+      // Timeout fired first: Device voice is already playing
+      // Stop cloud audio if it started playing (shouldn't happen, but safety check)
+      if (currentAIAudio) {
+        currentAIAudio.pause();
+        currentAIAudio.currentTime = 0;
+        currentAIAudio = null;
+      }
+      // Exit: Don't play cloud audio, device voice is already playing
+      // This ensures we don't interrupt the device voice that user is hearing
+      return;
+    }
+    
+    // Cloud TTS responded quickly (before timeout): Check if it succeeded
+    // If cloud service failed (non-200 response), use device voice as backup
+    // This handles cases where cloud responds quickly but with an error
+    if (!cloudTTSSuccess) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.volume = 0.25;
+      speechSynthesis.speak(utterance);
+    }
+    // If cloudTTSSuccess is true, cloud audio is already playing (handled in speakWithCloudTTS)
+    
+  } catch (error) {
+    // Error during cloud TTS request: Cancel timeout and handle error
+    clearTimeout(timeoutId);
+    
+    // If timeout already triggered device voice, ignore the error
+    // Device voice is already playing, so we don't need to do anything
+    if (fallbackUsed) {
+      return;
+    }
+    
+    // Error occurred and timeout didn't fire: Use device voice as fallback
+    // This ensures user always gets speech, even if cloud service fails completely
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.volume = 0.25;
+    speechSynthesis.speak(utterance);
+  }
+  */
 }
 
 function playSwishSound() {
@@ -549,7 +897,7 @@ function vibrateGentle() {
 
 function toggleSound() {
   soundOn = !soundOn;
-  speak(soundOn ? "Saying the colors" : "muted");
+  speak(soundOn ? "Saying the colors" : "muted", true); // Always use device voice for status messages
 }
 
 function updatePointerPosition(x, y) {
