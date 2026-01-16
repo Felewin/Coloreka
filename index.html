@@ -331,6 +331,265 @@ const TTS_SERVICE_URL = 'https://steep-sound-5d19.hunterbobeck.workers.dev';
 // This ensures only one voice plays at a time and prevents overlapping audio
 let currentAIAudio = null;
 
+/**
+ * MP3 Audio File Management System
+ * 
+ * This system manages pre-recorded MP3 audio files for colors and menu statements.
+ * Instead of using computer-generated speech, we play high-quality pre-recorded audio files.
+ * 
+ * HOW IT WORKS:
+ * 1. Each color/menu item has multiple MP3 files (e.g., "Blue (1).mp3", "Blue (2).mp3", etc.)
+ * 2. When a color is spoken, we randomly select one of its MP3 files
+ * 3. We track which files have been played to ensure variety
+ * 4. Once all files in a set have been played, we reshuffle and start a new cycle
+ * 5. This ensures users hear all variations before any repeats, but in random order each cycle
+ * 
+ * DATA STRUCTURE:
+ * - Key: Lowercase text identifier (e.g., 'blue', 'here are your controls')
+ * - displayName: Exact filename format used in the actual MP3 files (e.g., 'Blue', 'Here are your controls')
+ * - count: Total number of MP3 files available for this item (files are numbered 1 to count)
+ * - played: Array tracking which file numbers have been played in the current cycle
+ * - currentShuffle: Array of shuffled file numbers (1 to count) for the current cycle
+ * 
+ * EXAMPLE CYCLE FOR BLUE (7 files):
+ * - Cycle 1: Shuffle might be [3, 7, 1, 5, 2, 4, 6] - plays all 7 files in random order
+ * - Cycle 2: Shuffle might be [2, 6, 4, 1, 7, 3, 5] - plays all 7 files again, different order
+ * 
+ * TO ADD NEW COLORS/MENU ITEMS:
+ * Simply add a new entry with the lowercase key, displayName, and count of available files.
+ * Make sure the MP3 files exist in /audio/generated/ with the format: "{displayName} ({number}).mp3"
+ */
+const audioFileSets = {
+  'blue': { displayName: 'Blue', count: 7, played: [], currentShuffle: [] },
+  'green': { displayName: 'Green', count: 9, played: [], currentShuffle: [] },
+  'purple': { displayName: 'Purple', count: 4, played: [], currentShuffle: [] },
+  'rainbow': { displayName: 'Rainbow', count: 2, played: [], currentShuffle: [] },
+  'red': { displayName: 'Red', count: 2, played: [], currentShuffle: [] },
+  'yellow': { displayName: 'Yellow', count: 4, played: [], currentShuffle: [] },
+  'here are your controls': { displayName: 'Here are your controls', count: 2, played: [], currentShuffle: [] }
+};
+
+/**
+ * Checks if a given text has pre-recorded MP3 files available
+ * 
+ * This function determines whether we should use MP3 files or fall back to computer voice.
+ * It checks if the text (normalized to lowercase) exists as a key in audioFileSets.
+ * 
+ * @param {string} text - The text to check (e.g., "Blue", "Here are your controls")
+ * @returns {boolean} - True if MP3 files are available for this text, false otherwise
+ * 
+ * @example
+ * hasAudioFiles("Blue") // returns true (we have Blue MP3s)
+ * hasAudioFiles("muted") // returns false (no MP3s, will use computer voice)
+ */
+function hasAudioFiles(text) {
+  // Normalize to lowercase to match audioFileSets keys
+  // This handles variations like "Blue", "blue", "BLUE" all the same way
+  const normalizedKey = text.toLowerCase();
+  
+  // Check if this key exists in our audio file sets
+  return normalizedKey in audioFileSets;
+}
+
+/**
+ * Creates a shuffled array of indices using Fisher-Yates shuffle algorithm
+ * 
+ * This function generates a random permutation of numbers from 1 to count.
+ * Fisher-Yates is an efficient, unbiased shuffling algorithm that ensures
+ * each possible permutation has equal probability.
+ * 
+ * @param {number} count - Number of items to shuffle (files are numbered 1 to count)
+ * @returns {number[]} - Shuffled array of indices from 1 to count
+ * 
+ * @example
+ * createShuffledIndices(4) // might return [3, 1, 4, 2] or [2, 4, 1, 3], etc.
+ * createShuffledIndices(7) // might return [5, 2, 7, 1, 3, 6, 4], etc.
+ */
+function createShuffledIndices(count) {
+  // Create array [1, 2, 3, ..., count] representing file numbers
+  const indices = Array.from({ length: count }, (_, i) => i + 1);
+  
+  // Fisher-Yates shuffle: iterate backwards through array
+  // For each position, swap with a random position from 0 to current position
+  // This ensures each element has equal chance of ending up in any position
+  for (let i = indices.length - 1; i > 0; i--) {
+    // Pick a random index from 0 to i (inclusive)
+    const j = Math.floor(Math.random() * (i + 1));
+    
+    // Swap elements at positions i and j
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  
+  return indices;
+}
+
+/**
+ * Gets the next random MP3 file for a given color or menu item
+ * 
+ * This is the core function that manages the shuffle-and-cycle system.
+ * It ensures all MP3 files for an item are played before any repeats,
+ * but plays them in a different random order each cycle.
+ * 
+ * HOW IT WORKS:
+ * 1. Look up the audio file set for the given key
+ * 2. Check if we've completed a full cycle (played all files)
+ *    - If yes: Reset tracking arrays to start a new cycle
+ * 3. Check if we need a new shuffle (currentShuffle is empty)
+ *    - If yes: Create a new random shuffle of all file numbers
+ * 4. Take the next file number from the shuffle
+ * 5. Track that we've played this file number
+ * 6. Build and return the full file path
+ * 
+ * EXAMPLE FLOW FOR BLUE (7 files):
+ * - First call: currentShuffle=[], creates shuffle [3,7,1,5,2,4,6], returns "Blue (3).mp3"
+ * - Second call: currentShuffle=[7,1,5,2,4,6], returns "Blue (7).mp3"
+ * - ... continues until all 7 files played ...
+ * - 8th call: played.length=7, resets, creates new shuffle [2,6,4,1,7,3,5], returns "Blue (2).mp3"
+ * 
+ * @param {string} key - The color name (lowercase) or menu text to get audio for
+ * @returns {string|null} - Full path to the MP3 file (e.g., "audio/generated/Blue (3).mp3"), or null if not found
+ */
+function getNextAudioFile(key) {
+  // Normalize key to lowercase to match audioFileSets keys
+  const normalizedKey = key.toLowerCase();
+  
+  // Look up the audio file set configuration for this key
+  const set = audioFileSets[normalizedKey];
+  
+  // Safety check: If no set found, log warning and return null
+  // This should never happen if hasAudioFiles() was called first, but good to be safe
+  if (!set) {
+    console.warn(`No audio file set found for: ${key}`);
+    return null;
+  }
+  
+  // CYCLE MANAGEMENT: Check if we've completed a full cycle
+  // A cycle is complete when we've played all files in the set
+  if (set.played.length >= set.count) {
+    // Reset tracking arrays to start a fresh cycle
+    // This ensures we play all files again before any repeats
+    set.played = [];
+    set.currentShuffle = [];
+  }
+  
+  // SHUFFLE MANAGEMENT: Check if we need to create a new shuffle
+  // This happens at the start of each cycle (when currentShuffle is empty)
+  if (set.currentShuffle.length === 0) {
+    // Create a new random shuffle of all file numbers (1 to count)
+    // Each cycle will have a different random order
+    set.currentShuffle = createShuffledIndices(set.count);
+  }
+  
+  // GET NEXT FILE: Take the first file number from the shuffle
+  // shift() removes and returns the first element
+  const fileNumber = set.currentShuffle.shift();
+  
+  // TRACK PLAYED: Record that we've played this file number in the current cycle
+  // This helps us know when we've completed a full cycle
+  set.played.push(fileNumber);
+  
+  // BUILD FILENAME: Use displayName from config to ensure correct filename format
+  // Format: "{displayName} ({fileNumber}).mp3"
+  // Example: "Blue (3).mp3" or "Here are your controls (1).mp3"
+  const filename = `${set.displayName} (${fileNumber}).mp3`;
+  
+  // Return the full path to the MP3 file
+  return `audio/generated/${filename}`;
+}
+
+/**
+ * Plays an MP3 audio file for colors or menu statements
+ * 
+ * This function handles the actual playback of pre-recorded MP3 files.
+ * It manages audio interruption, error handling, and cleanup to ensure
+ * smooth playback and prevent overlapping audio.
+ * 
+ * HOW IT WORKS:
+ * 1. Stop any currently playing audio (MP3 or computer voice) to prevent overlap
+ * 2. Create a new Audio object with the file path
+ * 3. Set volume to 25% (matching computer voice volume)
+ * 4. Store reference so we can interrupt it if needed
+ * 5. Set up error and cleanup handlers
+ * 6. Start playback and return success status
+ * 
+ * ERROR HANDLING:
+ * - If file doesn't exist or can't be loaded, error handler fires
+ * - If playback fails, catch block handles it
+ * - In both cases, we clear the reference and return false
+ * - The caller (speak function) will fall back to computer voice
+ * 
+ * @param {string} filePath - Full path to the MP3 file (e.g., "audio/generated/Blue (3).mp3")
+ * @returns {Promise<boolean>} - Returns true if audio started playing successfully, false on error
+ */
+async function playAudioFile(filePath) {
+  try {
+    // AUDIO INTERRUPTION: Stop any currently playing audio
+    // This ensures only one audio source plays at a time
+    // If a new color is spoken while another is playing, the old one stops immediately
+    if (currentAIAudio) {
+      currentAIAudio.pause();
+      currentAIAudio.currentTime = 0; // Reset to beginning
+      currentAIAudio = null; // Clear reference
+    }
+    
+    // Also cancel any computer voice that might be playing
+    // This prevents MP3 and computer voice from playing simultaneously
+    speechSynthesis.cancel();
+    
+    // CREATE AUDIO OBJECT: Load the MP3 file
+    // The browser will fetch the file from the specified path
+    const audio = new Audio(filePath);
+    
+    // SET VOLUME: Match computer voice volume (25%)
+    // This ensures consistent audio levels across all speech types
+    audio.volume = 0.25;
+    
+    // STORE REFERENCE: Keep track of the currently playing audio
+    // This allows us to interrupt it if a new speech request comes in
+    // The reference is cleared when audio ends or errors
+    currentAIAudio = audio;
+    
+    // ERROR HANDLER: Handle cases where file can't be loaded or played
+    // This might happen if:
+    // - File doesn't exist at the path
+    // - File format is invalid
+    // - Network error loading the file
+    audio.addEventListener('error', (e) => {
+      console.error(`Failed to play audio file: ${filePath}`, e);
+      currentAIAudio = null; // Clear reference so new audio can play
+    });
+    
+    // CLEANUP HANDLER: Clear reference when audio finishes naturally
+    // This ensures the reference is cleared so new audio can play
+    // { once: true } ensures this handler only fires once
+    audio.addEventListener('ended', () => {
+      currentAIAudio = null;
+    }, { once: true });
+    
+    // START PLAYBACK: Begin playing the audio file
+    // This is async because the browser needs to load and decode the file
+    await audio.play();
+    
+    // SUCCESS: Audio started playing
+    return true;
+    
+  } catch (error) {
+    // CATCH ERRORS: Handle any errors during audio creation or playback
+    // This might happen if:
+    // - File path is invalid
+    // - Browser doesn't support the audio format
+    // - User interaction required (some browsers require user gesture)
+    console.error(`Error playing audio file: ${filePath}`, error);
+    
+    // Clear reference so new audio can attempt to play
+    currentAIAudio = null;
+    
+    // Return false to indicate failure
+    // The caller will fall back to computer voice
+    return false;
+  }
+}
+
 /* DISABLED: Cloud TTS functionality - disabled due to high latency
 // Debug function to test Worker directly - call testWorker() in console
 window.testWorker = async function() {
@@ -767,114 +1026,108 @@ async function speakWithCloudTTS(text) {
 }
 
 /**
- * Main speech function: Converts text to speech using device voice.
+ * Main speech function: Converts text to speech using pre-recorded MP3s or device voice.
  * 
- * Cloud TTS functionality has been disabled due to high latency.
- * All speech now uses the device's native text-to-speech engine.
+ * This is the main entry point for all speech in the application.
+ * It decides whether to use pre-recorded MP3 files or computer-generated voice
+ * based on the text content and context.
  * 
- * @param {string} text - The text to convert to speech
- * @param {boolean} useDeviceVoiceOnly - Deprecated parameter (kept for compatibility, always uses device voice)
+ * DECISION LOGIC:
+ * 1. Two-color mode (useDeviceVoiceOnly=true): Always uses device voice
+ *    - Example: "red and blue" → device voice
+ * 2. Status messages (useDeviceVoiceOnly=true): Always uses device voice
+ *    - Example: "muted", "Saying the colors" → device voice
+ * 3. Colors in single color mode: Uses MP3 files if available
+ *    - Example: "blue" → plays "Blue (3).mp3" (random file from set)
+ * 4. Menu statements: Uses MP3 files if available
+ *    - Example: "Coloreka!" → converts to "Here are your controls" → plays MP3
+ * 5. Fallback: If MP3 fails to load/play, falls back to device voice
+ * 
+ * MP3 INTEGRATION:
+ * - Checks if MP3 files exist for the text using hasAudioFiles()
+ * - Gets next random file using getNextAudioFile() (manages shuffle/cycle)
+ * - Plays the file using playAudioFile() (handles playback and errors)
+ * - Falls back to device voice if MP3 playback fails
+ * 
+ * @param {string} text - The text to convert to speech (e.g., "blue", "Coloreka!", "muted")
+ * @param {boolean} useDeviceVoiceOnly - If true, forces device voice (used for two-color mode and status messages)
+ * 
+ * @example
+ * speak("blue") // Plays random Blue MP3 file
+ * speak("red and blue", true) // Uses device voice (two-color mode)
+ * speak("muted", true) // Uses device voice (status message)
  */
 async function speak(text, useDeviceVoiceOnly = false) {
-  // Voice interruption: Stop any currently playing cloud TTS audio
+  // AUDIO INTERRUPTION: Stop any currently playing audio
   // This ensures that when a new speech request comes in, any old audio stops immediately
   // This prevents overlapping voices and ensures only the most recent request plays
+  // This is important because users might click colors rapidly
   if (currentAIAudio) {
     currentAIAudio.pause();
-    currentAIAudio.currentTime = 0;
-    currentAIAudio = null;
+    currentAIAudio.currentTime = 0; // Reset to beginning
+    currentAIAudio = null; // Clear reference
   }
   
-  // Voice interruption: Cancel any currently playing device voice
+  // VOICE INTERRUPTION: Cancel any currently playing device voice
   // This ensures new requests can interrupt old ones
+  // This handles both MP3 interrupting device voice and vice versa
   speechSynthesis.cancel();
   
-  // Use device voice directly
-  // Cloud TTS disabled due to high latency - always use device voice for responsive experience
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.volume = 0.25;
-  speechSynthesis.speak(utterance);
-  
-  /* DISABLED: Cloud TTS functionality - disabled due to high latency
-  // Timeout fallback system: Track whether we've already started device voice
-  // This flag prevents playing cloud audio if device voice already started due to timeout
-  let fallbackUsed = false;
-  
-  // Responsive timeout: If cloud TTS doesn't respond within 1200ms, use device voice
-  // This ensures speech always starts quickly, even if cloud service is slow or unavailable
-  // The timeout fires independently - we don't wait the full time then check duration
-  // Instead, as soon as 1200ms passes, device voice starts immediately
-  const timeoutId = setTimeout(() => {
-    // Timeout fired: Cloud TTS took too long, use device voice instead
-    // Log that response exceeded maximum wait time
-    console.log('Cloud TTS response exceeded maximum wait time (1200ms)');
-    fallbackUsed = true; // Mark that we're using fallback
-    
-    // Safety: Stop cloud audio if it somehow started playing during the timeout
-    // This prevents both voices playing simultaneously
-    if (currentAIAudio) {
-      currentAIAudio.pause();
-      currentAIAudio.currentTime = 0;
-      currentAIAudio = null;
-    }
-    
-    // Start device voice immediately - user gets speech without further delay
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.volume = 0.25;
-    speechSynthesis.speak(utterance);
-  }, 1200); // 1200ms timeout - fast enough to feel instant, slow enough for cloud to respond if available
-  
-  // Attempt cloud TTS: Request audio from cloud service
-  // This runs in parallel with the timeout - whichever completes first wins
-  try {
-    const cloudTTSSuccess = await speakWithCloudTTS(text);
-    
-    // Cloud TTS responded: Cancel the timeout since we got a response
-    // If timeout already fired, this does nothing (which is fine)
-    clearTimeout(timeoutId);
-    
-    // Check if timeout already triggered device voice
-    // If so, ignore the cloud response to prevent interrupting device voice
-    if (fallbackUsed) {
-      // Timeout fired first: Device voice is already playing
-      // Stop cloud audio if it started playing (shouldn't happen, but safety check)
-      if (currentAIAudio) {
-        currentAIAudio.pause();
-        currentAIAudio.currentTime = 0;
-        currentAIAudio = null;
-      }
-      // Exit: Don't play cloud audio, device voice is already playing
-      // This ensures we don't interrupt the device voice that user is hearing
-      return;
-    }
-    
-    // Cloud TTS responded quickly (before timeout): Check if it succeeded
-    // If cloud service failed (non-200 response), use device voice as backup
-    // This handles cases where cloud responds quickly but with an error
-    if (!cloudTTSSuccess) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.volume = 0.25;
-      speechSynthesis.speak(utterance);
-    }
-    // If cloudTTSSuccess is true, cloud audio is already playing (handled in speakWithCloudTTS)
-    
-  } catch (error) {
-    // Error during cloud TTS request: Cancel timeout and handle error
-    clearTimeout(timeoutId);
-    
-    // If timeout already triggered device voice, ignore the error
-    // Device voice is already playing, so we don't need to do anything
-    if (fallbackUsed) {
-      return;
-    }
-    
-    // Error occurred and timeout didn't fire: Use device voice as fallback
-    // This ensures user always gets speech, even if cloud service fails completely
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.volume = 0.25;
-    speechSynthesis.speak(utterance);
+  // TEXT NORMALIZATION: Handle menu statement conversion
+  // The app title "Coloreka!" is converted to "Here are your controls"
+  // This matches the actual MP3 filename format
+  if (text === 'Coloreka!' || text === 'Coloreka') {
+    text = 'Here are your controls';
   }
-  */
+  
+  // MP3 FILE CHECK: Determine if we should use pre-recorded MP3 files
+  // Conditions:
+  // 1. NOT forced to use device voice (useDeviceVoiceOnly = false)
+  // 2. MP3 files exist for this text (hasAudioFiles returns true)
+  // 
+  // This means:
+  // - Single color mode colors → use MP3s
+  // - Menu statements → use MP3s
+  // - Two-color mode → skip MP3s, use device voice
+  // - Status messages → skip MP3s, use device voice
+  if (!useDeviceVoiceOnly && hasAudioFiles(text)) {
+    // MP3 FILE PLAYBACK: Use pre-recorded MP3 files
+    
+    // Normalize text to lowercase for lookup (audioFileSets uses lowercase keys)
+    const normalizedText = text.toLowerCase();
+    
+    // Get the next random MP3 file for this text
+    // This function manages the shuffle/cycle system to ensure variety
+    const audioFile = getNextAudioFile(normalizedText);
+    
+    if (audioFile) {
+      // Attempt to play the MP3 file
+      const success = await playAudioFile(audioFile);
+      
+      if (success) {
+        // SUCCESS: MP3 is playing, we're done
+        // The playAudioFile function handles all playback, error handling, and cleanup
+        return;
+      }
+      
+      // FALLBACK: MP3 failed to play (file missing, format error, etc.)
+      // Log warning and fall through to device voice as backup
+      // This ensures users always get speech, even if MP3 files have issues
+      console.warn(`Failed to play MP3 for "${text}", falling back to device voice`);
+    }
+  }
+  
+  // DEVICE VOICE FALLBACK: Use computer-generated voice
+  // This is used for:
+  // - Two-color mode (forced via useDeviceVoiceOnly=true)
+  // - Status messages (forced via useDeviceVoiceOnly=true)
+  // - Fallback when MP3 files fail to play
+  // 
+  // DISABLED NOTE: Computer voice for colors and menu statements is now disabled
+  // in favor of MP3 files, but still used as fallback and for special cases
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.volume = 0.25; // Match MP3 volume level
+  speechSynthesis.speak(utterance);
 }
 
 function playSwishSound() {
