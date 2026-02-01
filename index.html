@@ -280,6 +280,98 @@
     background-size: 200% 100%;
     animation: rainbowMove 10s linear infinite;
   }
+
+  /* MP3 Generator Modal Styles */
+  #mp3GeneratorModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+  }
+
+  #mp3GeneratorModal.show {
+    display: flex;
+  }
+
+  #mp3GeneratorContent {
+    background-color: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+  }
+
+  #mp3GeneratorTitle {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+  }
+
+  #mp3GeneratorInput {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-family: 'Baloo 2', sans-serif;
+    box-sizing: border-box;
+  }
+
+  #mp3GeneratorInput:focus {
+    outline: none;
+    border-color: #4D96FF;
+  }
+
+  #mp3GeneratorButtons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .mp3GeneratorButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-family: 'Baloo 2', sans-serif;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  #mp3GeneratorSubmit {
+    background-color: #4D96FF;
+    color: white;
+  }
+
+  #mp3GeneratorSubmit:hover {
+    background-color: #3a7acc;
+  }
+
+  #mp3GeneratorSubmit:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  #mp3GeneratorClose {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+
+  #mp3GeneratorClose:hover {
+    background-color: #e0e0e0;
+  }
 </style>
 </head>
 <body>
@@ -294,9 +386,24 @@
   <div class="colorLayer"></div>
 </div>
 
+<!-- MP3 Generator Modal (Desktop Only) -->
+<div id="mp3GeneratorModal">
+  <div id="mp3GeneratorContent">
+    <div id="mp3GeneratorTitle">Say anything and save as MP3!</div>
+    <input type="text" id="mp3GeneratorInput" placeholder="Enter text to generate..." autocomplete="off">
+    <div id="mp3GeneratorButtons">
+      <button id="mp3GeneratorClose" class="mp3GeneratorButton">Close</button>
+      <button id="mp3GeneratorSubmit" class="mp3GeneratorButton">Generate & Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- Load lamejs for MP3 encoding when downloading audio files -->
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
 
 <script>
-const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
+// TEMPORARILY DISABLED: 'green' and 'rainbow' colors
+const colors = ['red', /* 'green', */ 'blue', 'yellow', 'purple'];
 const rippleColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#E964FF', '#FFA1C9'];
 let currentLeftColor, currentRightColor;
 let soundOn = true;
@@ -305,6 +412,9 @@ let touchCount = 0;
 let longPressTimer;
 let isTwoColorMode = false;
 const LONG_PRESS_DURATION = 700; // milliseconds
+
+// MP3 Generator Modal: Store last submission for session persistence
+let lastMP3Submission = '';
 let touchStartY = 0;
 let isMobile = false;
 let lastInteractionTime = 0;
@@ -320,11 +430,10 @@ let lastPointerRatio = { x: 0.5, y: 0.5 };
 let rippleFollowHandle = null;
 let lastSwishSound = null;
 const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish (3).mp3', 'audio/Swish (4).mp3'];
-/* DISABLED: Cloud TTS functionality - disabled due to high latency
 // Coloreka cloud TTS service endpoint - provides high-quality text-to-speech with expressive voices
-// May be rate limited or unavailable, in which case the app falls back to device's built-in voice
+// Available as a standalone feature - can be called directly via speakWithCloudTTS(text)
+// May be rate limited or unavailable, in which case the function will return false
 const TTS_SERVICE_URL = 'https://steep-sound-5d19.hunterbobeck.workers.dev';
-*/
 
 // Tracks the currently playing audio from the cloud TTS service
 // Used to stop playback if a new voice request comes in (either cloud or device voice)
@@ -629,6 +738,9 @@ function setLayerColor(layer, color) {
   if (color === 'rainbow') {
     layer.classList.add('rainbow-color');
     layer.style.backgroundColor = '';
+  } else if (color === 'purple') {
+    // Map purple to bright magenta (#FF00FF) for more vivid color
+    layer.style.backgroundColor = '#FF00FF';
   } else {
     layer.style.backgroundColor = color;
   }
@@ -637,12 +749,13 @@ function setLayerColor(layer, color) {
 function getRandomColor(currentLeftColor, currentRightColor) {
   let newColor;
   do {
+    // TEMPORARILY DISABLED: Rainbow color selection
     // Only allow rainbow after 5 changes since intro
-    if (colorChangesSinceIntro > 5 && Math.random() < 0.025) {
-      newColor = 'rainbow';
-    } else {
+    // if (colorChangesSinceIntro > 5 && Math.random() < 0.025) {
+    //   newColor = 'rainbow';
+    // } else {
       newColor = colors[Math.floor(Math.random() * colors.length)];
-    }
+    // }
   } while (newColor === currentLeftColor || newColor === currentRightColor);
   return newColor;
 }
@@ -818,19 +931,37 @@ function startApp() {
 }
 
 /**
- * Attempts to use the Coloreka cloud TTS service to generate and play speech audio.
+ * Cloud AI Voice Generation - Standalone Feature
  * 
- * DISABLED: Cloud TTS functionality has been disabled due to high latency.
- * This function now immediately returns false to use device voice instead.
+ * This function provides access to high-quality AI voice generation from the cloud.
+ * It is currently available as a standalone feature and can be called directly.
+ * 
+ * USAGE:
+ *   const success = await speakWithCloudTTS("Hello, world!");
+ *   if (success) {
+ *     // Audio is playing
+ *   } else {
+ *     // Failed - handle fallback if needed
+ *   }
+ * 
+ *   // With download enabled:
+ *   await speakWithCloudTTS("Hello, world!", true);
+ * 
+ * FEATURES:
+ * - High-quality AI-generated speech with expressive tone tags
+ * - Automatic fade-out to avoid trailing sounds
+ * - Audio interruption handling (stops previous audio when new request comes in)
+ * - Error handling with timing information
+ * - Optional audio file download when playback starts
+ * 
+ * NOTE: This function is not currently hooked up to the main speak() function.
+ * It's available as a standalone feature for future integration.
  * 
  * @param {string} text - The text to convert to speech
- * @returns {Promise<boolean>} - Returns false (disabled)
+ * @param {boolean} downloadAudio - If true, downloads the audio file when playback starts (default: false)
+ * @returns {Promise<boolean>} - Returns true if audio started playing successfully, false otherwise
  */
-async function speakWithCloudTTS(text) {
-  // DISABLED: Cloud TTS disabled due to high latency - always return false to use device voice
-  return false;
-  
-  /* DISABLED CODE BELOW - Cloud TTS functionality disabled due to high latency
+async function speakWithCloudTTS(text, downloadAudio = false) {
   // Voice interruption: Stop any currently playing cloud TTS audio
   // This ensures that if a new voice request comes in while audio is playing,
   // the old audio stops immediately so the new one can start
@@ -859,13 +990,15 @@ async function speakWithCloudTTS(text) {
     // The cloud TTS service supports tone modifiers in square brackets that affect
     // how the voice sounds - making it more cheerful, encouraging, or friendly
     // This creates a more engaging and supportive experience for users learning colors
-    const toneTags = ['[cheerful]'];
+    const toneTags = ['[cheerful]', '[encouraging]', '[friendly]'];
     const randomTone = toneTags[Math.floor(Math.random() * toneTags.length)];
     
     // Content detection: Determine if the text is a color name
     // Color names get special treatment with prefixes, while other text (like instructions)
     // gets simpler formatting
-    const colorNames = ['red', 'green', 'blue', 'yellow', 'purple', 'rainbow'];
+    // TEMPORARILY DISABLED: 'green' and 'rainbow' in colorNames
+    // Note: 'purple' is pronounced as 'magenta' via conversion in speak() function
+    const colorNames = ['red', /* 'green', */ 'blue', 'yellow', 'purple', /* 'rainbow' */];
     const isColor = colorNames.includes(text.toLowerCase());
     
     // Text enhancement: Add prefixes and exclamation points for more engaging speech
@@ -894,11 +1027,11 @@ async function speakWithCloudTTS(text) {
       // }
       
       // Temporary: No prefix, just tone tag and color name with exclamation
-      excitedText = randomTone + ' ' + text + '..!.';
+      excitedText = randomTone + ' ' + text + '.!';
     } else {
       // For non-color text (like instructions), just add tone tag and exclamation point
       // No prefix is added to keep the message clear and direct
-      excitedText = randomTone + ' ' + text + ' ..!.';
+      excitedText = randomTone + ' ' + text + '.!';
     }
     
     // Request audio from the Coloreka cloud TTS service
@@ -921,6 +1054,84 @@ async function speakWithCloudTTS(text) {
     if (response.status === 200) {
       // Convert the response to an audio blob that can be played
       const audioBlob = await response.blob();
+      
+      // Optional download: If downloadAudio is true, convert WAV to MP3 and download
+      if (downloadAudio) {
+        try {
+          // Convert WAV to MP3 using Web Audio API and lamejs
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioData = await audioContext.decodeAudioData(arrayBuffer);
+          
+          // Get audio samples (mono or stereo)
+          const sampleRate = audioData.sampleRate;
+          const numChannels = audioData.numberOfChannels;
+          const length = audioData.length;
+          
+          // Convert float samples to 16-bit PCM
+          // For stereo, interleave channels (L, R, L, R, ...)
+          let samples16bit;
+          if (numChannels === 2) {
+            const leftChannel = audioData.getChannelData(0);
+            const rightChannel = audioData.getChannelData(1);
+            samples16bit = new Int16Array(length * 2);
+            for (let i = 0; i < length; i++) {
+              samples16bit[i * 2] = Math.max(-32768, Math.min(32767, leftChannel[i] * 32768));
+              samples16bit[i * 2 + 1] = Math.max(-32768, Math.min(32767, rightChannel[i] * 32768));
+            }
+          } else {
+            const samples = audioData.getChannelData(0);
+            samples16bit = new Int16Array(length);
+            for (let i = 0; i < length; i++) {
+              samples16bit[i] = Math.max(-32768, Math.min(32767, samples[i] * 32768));
+            }
+          }
+          
+          // Encode to MP3 using lamejs
+          const mp3encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128); // 128 kbps
+          const sampleBlockSize = numChannels === 2 ? 1152 * 2 : 1152; // Stereo needs 2x samples
+          const mp3Data = [];
+          
+          for (let i = 0; i < samples16bit.length; i += sampleBlockSize) {
+            const sampleChunk = samples16bit.subarray(i, i + sampleBlockSize);
+            const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+            if (mp3buf.length > 0) {
+              mp3Data.push(mp3buf);
+            }
+          }
+          
+          // Flush encoder
+          const mp3buf = mp3encoder.flush();
+          if (mp3buf.length > 0) {
+            mp3Data.push(mp3buf);
+          }
+          
+          // Create MP3 blob
+          const mp3Blob = new Blob(mp3Data, { type: 'audio/mpeg' });
+          
+          const timestamp = Date.now();
+          // Sanitize text for filename: remove special characters, limit length, replace spaces
+          const sanitizedText = text
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+            .replace(/\s+/g, '_') // Replace spaces with underscores
+            .substring(0, 50); // Limit length
+          const filename = `audio/generated/${timestamp}_${sanitizedText}.mp3`;
+          
+          // Create download link and trigger download
+          const downloadUrl = URL.createObjectURL(mp3Blob);
+          const downloadLink = document.createElement('a');
+          downloadLink.href = downloadUrl;
+          downloadLink.download = filename;
+          downloadLink.style.display = 'none';
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(downloadUrl);
+        } catch (downloadError) {
+          console.error('Failed to download audio file:', downloadError);
+          // Continue with playback even if download fails
+        }
+      }
       
       // Create a temporary URL for the audio blob so it can be played
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -1020,9 +1231,8 @@ async function speakWithCloudTTS(text) {
   }
   
   // Failure case: Return false to indicate cloud TTS did not succeed
-  // The caller will use this to trigger fallback to device voice
+  // The caller can handle fallback if needed
   return false;
-  */
 }
 
 /**
@@ -1080,6 +1290,12 @@ async function speak(text, useDeviceVoiceOnly = false) {
     text = 'Here are your controls';
   }
   
+  // TEMPORARY: Force device voice for 'purple' (magenta) since MP3s are for "Purple" pronunciation
+  // This ensures "magenta" is spoken correctly instead of using old "Purple" MP3s
+  if (text.toLowerCase() === 'purple') {
+    useDeviceVoiceOnly = true;
+  }
+  
   // MP3 FILE CHECK: Determine if we should use pre-recorded MP3 files
   // Conditions:
   // 1. NOT forced to use device voice (useDeviceVoiceOnly = false)
@@ -1125,7 +1341,15 @@ async function speak(text, useDeviceVoiceOnly = false) {
   // 
   // DISABLED NOTE: Computer voice for colors and menu statements is now disabled
   // in favor of MP3 files, but still used as fallback and for special cases
-  const utterance = new SpeechSynthesisUtterance(text);
+  
+  // PRONUNCIATION CONVERSION: Convert 'purple' to 'magenta' for device voice
+  // This ensures the color is pronounced as "magenta" even though the code uses 'purple' as the identifier
+  let textToSpeak = text;
+  if (text.toLowerCase() === 'purple') {
+    textToSpeak = 'magenta';
+  }
+  
+  const utterance = new SpeechSynthesisUtterance(textToSpeak);
   utterance.volume = 0.25; // Match MP3 volume level
   speechSynthesis.speak(utterance);
 }
@@ -1335,6 +1559,11 @@ document.body.addEventListener('mousedown', (event) => {
     return;
   }
 
+  // Block app controls if MP3 generator modal is open
+  if (isMP3GeneratorModalOpen()) {
+    return;
+  }
+
   createRipple(event.clientX, event.clientY);
 
   if (isIntroScreen) {
@@ -1344,8 +1573,120 @@ document.body.addEventListener('mousedown', (event) => {
   }
 });
 
+// MP3 Generator Modal Functions
+function isMP3GeneratorModalOpen() {
+  const modal = document.getElementById('mp3GeneratorModal');
+  return modal && modal.classList.contains('show');
+}
+
+function showMP3GeneratorModal() {
+  if (isMobile) return; // Desktop only feature
+  
+  const modal = document.getElementById('mp3GeneratorModal');
+  const input = document.getElementById('mp3GeneratorInput');
+  
+  // Pre-fill with last submission if available
+  if (lastMP3Submission) {
+    input.value = lastMP3Submission;
+  } else {
+    input.value = '';
+  }
+  
+  modal.classList.add('show');
+  input.focus();
+  input.select(); // Select all text for easy replacement
+}
+
+function hideMP3GeneratorModal() {
+  const modal = document.getElementById('mp3GeneratorModal');
+  modal.classList.remove('show');
+}
+
+async function handleMP3GeneratorSubmit() {
+  const input = document.getElementById('mp3GeneratorInput');
+  const submitButton = document.getElementById('mp3GeneratorSubmit');
+  const text = input.value.trim();
+  
+  if (!text) {
+    alert('Please enter some text to generate.');
+    return;
+  }
+  
+  // Disable submit button during generation
+  submitButton.disabled = true;
+  submitButton.textContent = 'Generating...';
+  
+  try {
+    // Store the submission for next time
+    lastMP3Submission = text;
+    
+    // Call cloud TTS with download enabled
+    await speakWithCloudTTS(text, true);
+    
+    // Re-enable button after a short delay
+    setTimeout(() => {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Generate & Download';
+    }, 1000);
+  } catch (error) {
+    console.error('Error generating MP3:', error);
+    alert('Error generating MP3. Please try again.');
+    submitButton.disabled = false;
+    submitButton.textContent = 'Generate & Download';
+  }
+}
+
+// Initialize MP3 Generator Modal event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('mp3GeneratorModal');
+  const input = document.getElementById('mp3GeneratorInput');
+  const submitButton = document.getElementById('mp3GeneratorSubmit');
+  const closeButton = document.getElementById('mp3GeneratorClose');
+  
+  // Close button
+  closeButton.addEventListener('click', hideMP3GeneratorModal);
+  
+  // Submit button
+  submitButton.addEventListener('click', handleMP3GeneratorSubmit);
+  
+  // Submit on Enter key
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleMP3GeneratorSubmit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      hideMP3GeneratorModal();
+    }
+  });
+  
+  // Close modal when clicking outside
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      hideMP3GeneratorModal();
+    }
+  });
+});
+
 document.addEventListener('keydown', (event) => {
   if (!isMobile) {
+    // Allow Quote and Escape keys to work even when modal is open
+    // (Quote opens modal, Escape closes it or returns to intro)
+    if (event.code === 'Quote') {
+      event.preventDefault(); // Prevent apostrophe from being typed into input field
+      if (isMP3GeneratorModalOpen()) {
+        hideMP3GeneratorModal();
+      } else {
+        showMP3GeneratorModal();
+      }
+      return;
+    }
+    
+    // Block all other app controls if MP3 generator modal is open
+    if (isMP3GeneratorModalOpen()) {
+      return;
+    }
+    
     switch (event.code) {
       case 'Enter':
       case 'Space':
@@ -1385,6 +1726,11 @@ document.addEventListener('mousemove', (event) => {
 
 document.addEventListener('keyup', (event) => {
   if (!isMobile) {
+    // Block app controls if MP3 generator modal is open
+    if (isMP3GeneratorModalOpen()) {
+      return;
+    }
+    
     switch (event.code) {
       case 'ShiftLeft':
       case 'ShiftRight':
@@ -1395,6 +1741,11 @@ document.addEventListener('keyup', (event) => {
 });
 
 document.body.addEventListener('touchstart', (event) => {
+  // Block app controls if MP3 generator modal is open
+  if (isMP3GeneratorModalOpen()) {
+    return;
+  }
+  
   event.preventDefault();
   touchStartTime = new Date().getTime();
   touchCount = event.touches.length;
@@ -1425,6 +1776,11 @@ document.body.addEventListener('touchstart', (event) => {
 }, { passive: false });
 
 document.body.addEventListener('touchend', (event) => {
+  // Block app controls if MP3 generator modal is open
+  if (isMP3GeneratorModalOpen()) {
+    return;
+  }
+  
   event.preventDefault();
   Array.from(event.changedTouches || []).forEach(touch => {
     createRipple(touch.clientX, touch.clientY, false);
@@ -1462,6 +1818,11 @@ document.body.addEventListener('touchend', (event) => {
 }, { passive: false });
 
 document.body.addEventListener('touchmove', (event) => {
+  // Block app controls if MP3 generator modal is open
+  if (isMP3GeneratorModalOpen()) {
+    return;
+  }
+  
   const touch = event.touches && event.touches[0];
   if (touch) {
     updatePointerPosition(touch.clientX, touch.clientY);
