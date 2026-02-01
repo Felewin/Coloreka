@@ -403,7 +403,8 @@
 
 <script>
 // TEMPORARILY DISABLED: 'green' and 'rainbow' colors
-const colors = ['red', /* 'green', */ 'blue', 'yellow', 'purple'];
+// TEMPORARILY DISABLED: 'green', 'rainbow', and 'red' colors
+const colors = [/* 'red', */ /* 'green', */ 'blue', 'yellow', 'purple'];
 const rippleColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#E964FF', '#FFA1C9'];
 let currentLeftColor, currentRightColor;
 let soundOn = true;
@@ -996,9 +997,9 @@ async function speakWithCloudTTS(text, downloadAudio = false) {
     // Content detection: Determine if the text is a color name
     // Color names get special treatment with prefixes, while other text (like instructions)
     // gets simpler formatting
-    // TEMPORARILY DISABLED: 'green' and 'rainbow' in colorNames
+    // TEMPORARILY DISABLED: 'green', 'rainbow', and 'red' in colorNames
     // Note: 'purple' is pronounced as 'magenta' via conversion in speak() function
-    const colorNames = ['red', /* 'green', */ 'blue', 'yellow', 'purple', /* 'rainbow' */];
+    const colorNames = [/* 'red', */ /* 'green', */ 'blue', 'yellow', 'purple', /* 'rainbow' */];
     const isColor = colorNames.includes(text.toLowerCase());
     
     // Text enhancement: Add prefixes and exclamation points for more engaging speech
