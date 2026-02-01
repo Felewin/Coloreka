@@ -1520,7 +1520,34 @@ function returnToIntro() {
 }
 
 function checkMobile() {
-  isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  // Improved mobile detection that handles modern iPads (iPadOS 13+)
+  // Modern iPads report as Macintosh in user agent, so we need additional checks
+  
+  const ua = navigator.userAgent;
+  
+  // Standard mobile device check (includes Android phones/tablets, older iPads, etc.)
+  // Android tablets will be caught here since they have "Android" in user agent
+  const isStandardMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  
+  // Check for modern iPad (iPadOS 13+)
+  // These report as MacIntel platform with Macintosh user agent but have:
+  // - maxTouchPoints > 1 (indicates multi-touch capability, iPads typically have 5+)
+  // - Touch event support
+  const isModernIPad = navigator.platform === 'MacIntel' && 
+                       navigator.maxTouchPoints > 1 &&
+                       'ontouchstart' in window;
+  
+  // Fallback for Android tablets with unusual user agents (rare edge case)
+  // Some custom browsers might not include "Android" but still have Android-like characteristics
+  const isAndroidTabletFallback = navigator.platform === 'Linux armv7l' || 
+                                  navigator.platform === 'Linux aarch64' ||
+                                  (navigator.platform.startsWith('Linux') && 
+                                   navigator.maxTouchPoints > 1 &&
+                                   'ontouchstart' in window);
+  
+  // Consider it mobile if it's a standard mobile device, modern iPad, or Android tablet fallback
+  isMobile = isStandardMobile || isModernIPad || isAndroidTabletFallback;
+  
   updateIntroRules();
 }
 
