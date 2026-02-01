@@ -748,17 +748,14 @@ function setLayerColor(layer, color) {
 }
 
 function getRandomColor(currentLeftColor, currentRightColor) {
-  let newColor;
-  do {
-    // TEMPORARILY DISABLED: Rainbow color selection
-    // Only allow rainbow after 5 changes since intro
-    // if (colorChangesSinceIntro > 5 && Math.random() < 0.025) {
-    //   newColor = 'rainbow';
-    // } else {
-      newColor = colors[Math.floor(Math.random() * colors.length)];
-    // }
-  } while (newColor === currentLeftColor || newColor === currentRightColor);
-  return newColor;
+  // Randomly select a color - repetition is allowed (same color can appear multiple times in a row)
+  // TEMPORARILY DISABLED: Rainbow color selection
+  // Only allow rainbow after 5 changes since intro
+  // if (colorChangesSinceIntro > 5 && Math.random() < 0.025) {
+  //   return 'rainbow';
+  // } else {
+    return colors[Math.floor(Math.random() * colors.length)];
+  // }
 }
 
 function changeColors() {
