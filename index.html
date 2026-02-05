@@ -1343,8 +1343,9 @@ async function speak(text, useDeviceVoiceOnly = false) {
   // PRONUNCIATION CONVERSION: Convert 'purple' to 'magenta' for device voice
   // This ensures the color is pronounced as "magenta" even though the code uses 'purple' as the identifier
   let textToSpeak = text;
-  if (text.toLowerCase() === 'purple') {
-    textToSpeak = 'magenta';
+  if (text.toLowerCase().includes('purple')) {
+    // Replace every occurrence so phrases like "purple and blue" say "magenta and blue"
+    textToSpeak = text.replace(/\bpurple\b/gi, 'magenta');
   }
   
   const utterance = new SpeechSynthesisUtterance(textToSpeak);
