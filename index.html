@@ -1,4 +1,6 @@
 <html><head>
+<!-- Disable pinch-to-zoom for app-like experience on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Coloreka!</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,12 +23,16 @@
     -ms-user-select: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    /* Prevent pinch-to-zoom gestures for app-like experience */
+    touch-action: manipulation;
     display: flex;
   }
   
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    /* Prevent pinch-to-zoom gestures on all elements */
+    touch-action: manipulation;
   }
 
   #leftColor, #rightColor {
