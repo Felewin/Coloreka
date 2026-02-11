@@ -410,7 +410,7 @@
 <script>
 // TEMPORARILY DISABLED: 'green' and 'rainbow' colors
 // TEMPORARILY DISABLED: 'green', 'rainbow', and 'red' colors
-const colors = [/* 'red', */ /* 'green', */ 'blue', 'yellow', 'purple'];
+const colors = [/* 'red', */ /* 'green', */ 'blue', 'yellow', 'magenta'];
 const rippleColors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#E964FF', '#FFA1C9'];
 let currentLeftColor, currentRightColor;
 let soundOn = true;
@@ -478,7 +478,7 @@ let currentAIAudio = null;
 const audioFileSets = {
   'blue': { displayName: 'Blue', count: 7, played: [], currentShuffle: [] },
   'green': { displayName: 'Green', count: 9, played: [], currentShuffle: [] },
-  'purple': { displayName: 'Purple', count: 4, played: [], currentShuffle: [] },
+  'magenta': { displayName: 'Magenta', count: 7, played: [], currentShuffle: [] },
   'rainbow': { displayName: 'Rainbow', count: 2, played: [], currentShuffle: [] },
   'red': { displayName: 'Red', count: 2, played: [], currentShuffle: [] },
   'yellow': { displayName: 'Yellow', count: 4, played: [], currentShuffle: [] },
@@ -745,8 +745,8 @@ function setLayerColor(layer, color) {
   if (color === 'rainbow') {
     layer.classList.add('rainbow-color');
     layer.style.backgroundColor = '';
-  } else if (color === 'purple') {
-    // Map purple to bright magenta (#FF00FF) for more vivid color
+  } else if (color === 'magenta') {
+    // Magenta: bright #FF00FF
     layer.style.backgroundColor = '#FF00FF';
   } else {
     layer.style.backgroundColor = color;
@@ -1001,8 +1001,7 @@ async function speakWithCloudTTS(text, downloadAudio = false) {
     // Color names get special treatment with prefixes, while other text (like instructions)
     // gets simpler formatting
     // TEMPORARILY DISABLED: 'green', 'rainbow', and 'red' in colorNames
-    // Note: 'purple' is pronounced as 'magenta' via conversion in speak() function
-    const colorNames = [/* 'red', */ /* 'green', */ 'blue', 'yellow', 'purple', /* 'rainbow' */];
+    const colorNames = [/* 'red', */ /* 'green', */ 'blue', 'yellow', 'magenta', /* 'rainbow' */];
     const isColor = colorNames.includes(text.toLowerCase());
     
     // Text enhancement: Add prefixes and exclamation points for more engaging speech
@@ -1294,12 +1293,6 @@ async function speak(text, useDeviceVoiceOnly = false) {
     text = 'Here are your controls';
   }
   
-  // TEMPORARY: Force device voice for 'purple' (magenta) since MP3s are for "Purple" pronunciation
-  // This ensures "magenta" is spoken correctly instead of using old "Purple" MP3s
-  if (text.toLowerCase() === 'purple') {
-    useDeviceVoiceOnly = true;
-  }
-  
   // MP3 FILE CHECK: Determine if we should use pre-recorded MP3 files
   // Conditions:
   // 1. NOT forced to use device voice (useDeviceVoiceOnly = false)
@@ -1345,16 +1338,7 @@ async function speak(text, useDeviceVoiceOnly = false) {
   // 
   // DISABLED NOTE: Computer voice for colors and menu statements is now disabled
   // in favor of MP3 files, but still used as fallback and for special cases
-  
-  // PRONUNCIATION CONVERSION: Convert 'purple' to 'magenta' for device voice
-  // This ensures the color is pronounced as "magenta" even though the code uses 'purple' as the identifier
-  let textToSpeak = text;
-  if (text.toLowerCase().includes('purple')) {
-    // Replace every occurrence so phrases like "purple and blue" say "magenta and blue"
-    textToSpeak = text.replace(/\bpurple\b/gi, 'magenta');
-  }
-  
-  const utterance = new SpeechSynthesisUtterance(textToSpeak);
+  const utterance = new SpeechSynthesisUtterance(text);
   utterance.volume = 0.25; // Match MP3 volume level
   speechSynthesis.speak(utterance);
 }
