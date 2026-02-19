@@ -775,15 +775,14 @@ function setLayerColor(layer, color) {
   }
 }
 
-function getRandomColor(currentLeftColor, currentRightColor) {
-  // Randomly select a color - repetition is allowed (same color can appear multiple times in a row)
-  // TEMPORARILY DISABLED: Rainbow color selection
-  // Only allow rainbow after 5 changes since intro
-  // if (colorChangesSinceIntro > 5 && Math.random() < 0.025) {
-  //   return 'rainbow';
-  // } else {
-    return colors[Math.floor(Math.random() * colors.length)];
-  // }
+function getRandomColor(exclude) {
+  // If exclude is set (e.g. left color in two-color mode), pick from the rest so it's never the same
+  if (exclude != null) {
+    const other = colors.filter(c => c !== exclude);
+    if (other.length === 0) return colors[0];
+    return other[Math.floor(Math.random() * other.length)];
+  }
+  return colors[Math.floor(Math.random() * colors.length)];
 }
 
 function changeColors() {
@@ -798,8 +797,8 @@ function changeColors() {
   const previousLeftColor = currentLeftColor;
   const previousRightColor = currentRightColor;
   
-  currentLeftColor = getRandomColor(currentLeftColor, currentRightColor);
-  currentRightColor = getRandomColor(currentLeftColor, currentRightColor);
+  currentLeftColor = getRandomColor(); // full random for first
+  currentRightColor = isTwoColorMode ? getRandomColor(currentLeftColor) : getRandomColor(); // second never same as first in two-color mode
 
   colorChangesSinceIntro++; // Increment counter
 
@@ -1496,7 +1495,7 @@ function toggleTwoColorMode() {
     if (isTwoColorMode) {
       rightColorElement.style.display = 'block';
       if (!currentRightColor || currentRightColor === currentLeftColor) {
-        currentRightColor = getRandomColor(currentLeftColor, currentLeftColor);
+        currentRightColor = getRandomColor(currentLeftColor);
       }
       setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
     } else {
