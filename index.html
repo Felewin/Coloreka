@@ -544,6 +544,12 @@ const TTS_SERVICE_URL = 'https://steep-sound-5d19.hunterbobeck.workers.dev';
 // This ensures only one voice plays at a time and prevents overlapping audio
 let currentAIAudio = null;
 
+// Preload control panel emoji images so they don't flicker when switching modes
+['arrow-forward', 'desktop', 'megaphone', 'hush', 'one-finger', 'two-fingers', 'scroll', 'selfie-bright'].forEach(name => {
+  const img = new Image();
+  img.src = `emojis/${name}.png`;
+});
+
 /**
  * MP3 Audio File Management System
  * 
