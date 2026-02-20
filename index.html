@@ -182,6 +182,29 @@
 
   #introRules li {
     margin-bottom: 1vh;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1em;
+    flex-wrap: wrap;
+  }
+
+  #introRules li .control-group {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  #introRules .control-pill {
+    display: inline-block;
+    background-color: rgba(0, 0, 0, 0.12);
+    padding: 0.2em 0.6em;
+    border-radius: 9999px;
+    font-style: normal;
+  }
+
+  #introRules .control-sep {
+    color: rgba(0, 0, 0, 0.35);
+    margin: 0 0.08em;
   }
 
   .also-plays-text {
@@ -505,7 +528,7 @@ const audioFileSets = {
   'red': { displayName: 'Red', count: 2, played: [], currentShuffle: [] },
   'yellow': { displayName: 'Yellow', count: 4, played: [], currentShuffle: [] },
   'here are your controls': { displayName: 'Here are your controls', count: 2, played: [], currentShuffle: [] },
-  'muted': { displayName: 'Muted', count: 2, played: [], currentShuffle: [] },
+  "i'll be quiet when you advance": { displayName: "I'll be quiet when you advance", count: 1, played: [], currentShuffle: [] },
   "i'll tell you the colors when you advance": { displayName: "I'll tell you the colors when you advance", count: 1, played: [], currentShuffle: [] }
 };
 
@@ -520,7 +543,7 @@ const audioFileSets = {
  * 
  * @example
  * hasAudioFiles("Blue") // returns true (we have Blue MP3s)
- * hasAudioFiles("muted") // returns true (we have Muted MP3s)
+ * hasAudioFiles("I'll be quiet when you advance") // returns true (we have that MP3)
  */
 function hasAudioFiles(text) {
   // Normalize to lowercase to match audioFileSets keys
@@ -1268,7 +1291,7 @@ async function speakWithCloudTTS(text, downloadAudio = false) {
  * 1. Two-color mode (useDeviceVoiceOnly=true): Always uses device voice
  *    - Example: "red and blue" → device voice
  * 2. Status messages: Use MP3s when available, device voice fallback
- *    - "muted" → Muted (1).mp3, Muted (2).mp3
+ *    - "I'll be quiet when you advance" → I'll be quiet when you advance (1).mp3 (fallback says "muted")
  *    - "I'll tell you the colors when you advance" → I'll tell you the colors when you advance (1).mp3
  * 3. Colors in single color mode: Uses MP3 files if available
  *    - Example: "blue" → plays "Blue (3).mp3" (random file from set)
@@ -1313,7 +1336,7 @@ async function speak(text, useDeviceVoiceOnly = false, deviceVoiceText = null) {
   // This means:
   // - Single color mode colors → use MP3s
   // - Menu statement ("Here are your controls") → use MP3s
-  // - "muted" status → use MP3s (Muted (1).mp3, Muted (2).mp3)
+  // - "I'll be quiet when you advance" → use MP3 (fallback says "muted")
   // - "I'll tell you the colors when you advance" → use MP3s
   // - Two-color mode → skip MP3s, use device voice
   if (!useDeviceVoiceOnly && hasAudioFiles(text)) {
@@ -1375,7 +1398,7 @@ function vibrateGentle() {
 
 function toggleSound() {
   soundOn = !soundOn;
-  speak(soundOn ? "I'll tell you the colors when you advance" : "muted", false, soundOn ? "Saying the colors" : null); // MP3 for both; device voice fallback says "Saying the colors" when sound on
+  speak(soundOn ? "I'll tell you the colors when you advance" : "I'll be quiet when you advance", false, soundOn ? "Saying the colors" : "muted"); // MP3 for both; device voice fallback
 }
 
 function updatePointerPosition(x, y) {
@@ -1417,9 +1440,7 @@ function jiggleTitle() {
 
 function celebrateIntroScreen() {
   jiggleTitle();
-  if (soundOn) {
-    speak("Here are your controls");
-  }
+  speak("Here are your controls");
 }
 
 function followRipplesToPointer() {
@@ -1515,9 +1536,7 @@ function returnToIntro() {
   isTwoColorMode = false;
   currentLeftColor = undefined;
   currentRightColor = undefined;
-  if (soundOn) {
-    speak("Here are your controls");
-  }
+  speak("Here are your controls");
 }
 
 function checkMobile() {
@@ -1559,10 +1578,10 @@ function updateIntroRules() {
     ${alsoPlaysText}
     <h3>${isMobile ? '🤳 Mobile Controls!' : '🖥️ Desktop Controls!'}</h3>
     <ul>
-      <li>▶️ <strong>Advance</strong>! ${isMobile ? '<i>Tap</i>' : '<i>Click</i> on the screen, press <i>Enter</i>, or press <i>Spacebar</i>'}</li>
-      <li>🔄 <strong>Switch between single/two-color mode</strong>! ${isMobile ? '<i>Two-finger tap</i>' : 'Press the <i>Shift</i> key'}</li>
-      <li>🔊 <strong>Toggle saying the colors</strong>! ${isMobile ? '<i>Long press</i>' : "Press the <i>S</i> key"}</li>
-      <li>📜 <strong>Return here / Summarize these controls</strong>! ${isMobile ? '<i>Three-finger tap</i>' : 'Press <i>Escape</i>'}</li>
+      <li><span class="control-label">▶️ <strong>Advance to the next color</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Tap</span>' : '<span class="control-pill">Click</span><span class="control-sep">|</span><span class="control-pill">Enter</span><span class="control-sep">|</span><span class="control-pill">Spacebar</span>'}</span></li>
+      <li><span class="control-label">🔄 <strong>Switch between single or two-color mode</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Two-finger tap</span>' : '<span class="control-pill">Shift</span>'}</span></li>
+      <li><span class="control-label">🔊 <strong>Toggle telling me the colors when advancing</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Long press</span>' : '<span class="control-pill">S</span>'}</span></li>
+      <li><span class="control-label">📜 <strong>Return here / Summarize these controls</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Three-finger tap</span>' : '<span class="control-pill">Escape</span>'}</span></li>
     </ul>
   `;
 }
