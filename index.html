@@ -529,7 +529,9 @@ const audioFileSets = {
   'yellow': { displayName: 'Yellow', count: 4, played: [], currentShuffle: [] },
   'here are your controls': { displayName: 'Here are your controls', count: 2, played: [], currentShuffle: [] },
   "i'll be quiet when you advance": { displayName: "I'll be quiet when you advance", count: 1, played: [], currentShuffle: [] },
-  "i'll tell you the colors when you advance": { displayName: "I'll tell you the colors when you advance", count: 1, played: [], currentShuffle: [] }
+  "i'll tell you the colors when you advance": { displayName: "I'll tell you the colors when you advance", count: 1, played: [], currentShuffle: [] },
+  "i'll give you one color at a time": { displayName: "I'll give you one color at a time", count: 1, played: [], currentShuffle: [] },
+  "i'll give you two colors at once": { displayName: "I'll give you two colors at once", count: 1, played: [], currentShuffle: [] }
 };
 
 /**
@@ -1504,15 +1506,17 @@ function toggleTwoColorMode() {
 
   isTwoColorMode = !isTwoColorMode;
   const rightColorElement = document.getElementById('rightColor');
-    if (isTwoColorMode) {
-      rightColorElement.style.display = 'block';
-      if (!currentRightColor || currentRightColor === currentLeftColor) {
-        currentRightColor = getRandomColor(currentLeftColor);
-      }
-      setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
-    } else {
-      rightColorElement.style.display = 'none';
+  if (isTwoColorMode) {
+    rightColorElement.style.display = 'block';
+    if (!currentRightColor || currentRightColor === currentLeftColor) {
+      currentRightColor = getRandomColor(currentLeftColor);
     }
+    setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
+    speak("I'll give you two colors at once", false, "two color mode");
+  } else {
+    rightColorElement.style.display = 'none';
+    speak("I'll give you one color at a time", false, "single color mode");
+  }
 }
 
 function returnToIntro() {
