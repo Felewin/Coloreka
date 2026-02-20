@@ -894,6 +894,20 @@ function getRandomColor(exclude) {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
+/** Returns [left, right] for two-color mode. Excludes the exact previous pair (same order); opposite order is allowed. */
+function getRandomTwoColorPair(previousLeft, previousRight) {
+  const pairs = [];
+  for (const a of colors) {
+    for (const b of colors) {
+      if (a !== b) pairs.push([a, b]);
+    }
+  }
+  const exclude = previousLeft != null && previousRight != null ? [previousLeft, previousRight] : null;
+  const available = exclude ? pairs.filter(([a, b]) => a !== exclude[0] || b !== exclude[1]) : pairs;
+  if (available.length === 0) return pairs[0];
+  return available[Math.floor(Math.random() * available.length)];
+}
+
 function changeColors() {
   if (isIntroScreen) return;
 
@@ -906,8 +920,12 @@ function changeColors() {
   const previousLeftColor = currentLeftColor;
   const previousRightColor = currentRightColor;
   
-  currentLeftColor = getRandomColor(); // full random for first
-  currentRightColor = isTwoColorMode ? getRandomColor(currentLeftColor) : getRandomColor(); // second never same as first in two-color mode
+  if (isTwoColorMode) {
+    [currentLeftColor, currentRightColor] = getRandomTwoColorPair(previousLeftColor, previousRightColor);
+  } else {
+    currentLeftColor = getRandomColor();
+    currentRightColor = getRandomColor();
+  }
 
   colorChangesSinceIntro++; // Increment counter
 
