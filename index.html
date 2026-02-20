@@ -262,6 +262,12 @@
     margin: 0 0.08em;
   }
 
+  #introRules .control-emoji {
+    height: 1em;
+    width: auto;
+    vertical-align: -0.15em;
+  }
+
   .also-plays-text {
     position: absolute;
     top: 2vh;
@@ -1637,18 +1643,20 @@ function checkMobile() {
 
 function updateIntroRules() {
   const introRules = document.getElementById('introRules');
-  const alsoPlaysText = isMobile ? '' : '<div class="also-plays-text">🤳 Also plays on mobile!</div>';
+  const alsoPlaysText = isMobile ? '' : '<div class="also-plays-text"><img src="emojis/selfie-bright.png" alt="" class="control-emoji"> Also plays on mobile!</div>';
   /* Preserve gradient animation progress: use negative delay so new elements start where the 1.25s cycle currently is */
   const gradientDelay = -(Date.now() % 1250);
   const gradientStyle = `style="animation-delay: ${gradientDelay}ms"`;
+  const modeEmoji = `<img src="emojis/${isTwoColorMode ? 'one-finger' : 'two-fingers'}.png" alt="" class="control-emoji">`;
+  const soundEmoji = `<img src="emojis/${soundOn ? 'hush' : 'megaphone'}.png" alt="" class="control-emoji">`;
   introRules.innerHTML = `
     ${alsoPlaysText}
-    <h3>${isMobile ? '🤳 Mobile Controls!' : '🖥️ Desktop Controls!'}</h3>
+    <h3>${isMobile ? '<img src="emojis/selfie-bright.png" alt="" class="control-emoji"> Mobile Controls!' : '<img src="emojis/desktop.png" alt="" class="control-emoji"> Desktop Controls!'}</h3>
     <ul>
-      <li><span class="control-label">▶️ <strong>Advance to the next color</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Tap</span>' : '<span class="control-pill">Click</span><span class="control-sep">|</span><span class="control-pill">Enter</span><span class="control-sep">|</span><span class="control-pill">Spacebar</span>'}</span></li>
-      <li class="mode-toggle-row"><span class="control-label">🔄 <strong>Switch to <span class="control-label-gradient" ${gradientStyle}>${isTwoColorMode ? 'single' : 'two'}</span>-color mode</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">2-finger tap</span>' : '<span class="control-pill">Shift</span>'}</span></li>
-      <li class="sound-toggle-row"><span class="control-label">🔊 <strong><span class="control-label-gradient" ${gradientStyle}>${soundOn ? 'Stay quiet' : 'Say the color'}</span> when advancing</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Long press</span>' : '<span class="control-pill">S</span>'}</span></li>
-      <li><span class="control-label">📜 <strong>View/say these controls</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">3-finger tap</span>' : '<span class="control-pill">Escape</span>'}</span></li>
+      <li><span class="control-label"><img src="emojis/arrow-forward.png" alt="" class="control-emoji"> <strong>Advance to the next color</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Tap</span>' : '<span class="control-pill">Click</span><span class="control-sep">|</span><span class="control-pill">Enter</span><span class="control-sep">|</span><span class="control-pill">Spacebar</span>'}</span></li>
+      <li class="mode-toggle-row"><span class="control-label">${modeEmoji} <strong>Switch to <span class="control-label-gradient" ${gradientStyle}>${isTwoColorMode ? 'single' : 'two'}</span>-color mode</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">2-finger tap</span>' : '<span class="control-pill">Shift</span>'}</span></li>
+      <li class="sound-toggle-row"><span class="control-label">${soundEmoji} <strong><span class="control-label-gradient" ${gradientStyle}>${soundOn ? 'Stay quiet' : 'Say the color'}</span> when advancing</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Long press</span>' : '<span class="control-pill">S</span>'}</span></li>
+      <li><span class="control-label"><img src="emojis/scroll.png" alt="" class="control-emoji"> <strong>View/say these controls</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">3-finger tap</span>' : '<span class="control-pill">Escape</span>'}</span></li>
     </ul>
   `;
 }
