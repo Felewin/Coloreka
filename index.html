@@ -595,6 +595,12 @@ const audioFileSets = {
   'controls summary - mobile': { displayName: 'Controls Summary - Mobile', count: 1, played: [], currentShuffle: [] },
   'first color': { displayName: 'First Color', count: 4, played: [], currentShuffle: [] },
   'first colors': { displayName: 'First Colors', count: 4, played: [], currentShuffle: [] },
+  'blue and yellow': { displayName: 'Blue and Yellow', count: 1, played: [], currentShuffle: [] },
+  'blue and magenta': { displayName: 'Blue and Magenta', count: 1, played: [], currentShuffle: [] },
+  'yellow and blue': { displayName: 'Yellow and Blue', count: 1, played: [], currentShuffle: [] },
+  'yellow and magenta': { displayName: 'Yellow and Magenta', count: 1, played: [], currentShuffle: [] },
+  'magenta and blue': { displayName: 'Magenta and Blue', count: 1, played: [], currentShuffle: [] },
+  'magenta and yellow': { displayName: 'Magenta and Yellow', count: 1, played: [], currentShuffle: [] },
   'magenta': { displayName: 'Magenta', count: 7, played: [], currentShuffle: [] },
   'returning to menu - desktop': { displayName: 'Returning to Menu - Desktop', count: 2, played: [], currentShuffle: [] },
   'returning to menu - mobile': { displayName: 'Returning to Menu - Mobile', count: 2, played: [], currentShuffle: [] },
@@ -918,7 +924,7 @@ function changeColors() {
 
   if (soundOn) {
     if (isTwoColorMode) {
-      speak(`${previousLeftColor} and ${previousRightColor}`, true); // Always use device voice in two color mode
+      speak(`${previousLeftColor} and ${previousRightColor}`, false); // Use MP3 if available, else device voice fallback
     } else {
       speak(previousLeftColor);
     }
