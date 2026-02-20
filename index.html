@@ -1500,9 +1500,18 @@ function jiggleTitle() {
   }
 }
 
-function celebrateIntroScreen() {
+/**
+ * When the return-to-menu control is pressed at the menu (Escape on desktop, 3-finger tap on mobile),
+ * jiggles the title and plays the controls summary voiceover.
+ * Desktop: "This is Coloreka! You're at the menu. Here are the controls: Advance to the next color by clicking. Toggle 2 color mode by pressing Shift. Toggle saying the colors by pressing S. To hear this again, press Escape."
+ * Mobile: "This is Coloreka! You're at the menu. Here are the controls: Advance to the next color by tapping. Toggle 2 color mode by tapping with two fingers. Toggle saying the colors by long pressing. To hear this again, tap with three fingers."
+ */
+async function celebrateIntroScreen() {
   jiggleTitle();
-  speak("Here are your controls");
+  const controlsSummaryFilename = isMobile ? 'Controls Summary - Mobile.mp3' : 'Controls Summary - Desktop.mp3';
+  const controlsSummaryPath = `audio/generated/${encodeURIComponent(controlsSummaryFilename)}`;
+  const played = await playAudioFile(controlsSummaryPath);
+  if (!played) speak("Here are your controls"); // Fallback if MP3 unavailable
 }
 
 function followRipplesToPointer() {
