@@ -133,12 +133,16 @@
     animation: moveGradient 10s linear infinite;
   }
 
+  .intro-title-container {
+    min-width: 0;
+  }
+
   .baloo-2-intro-title {
     font-family: "Baloo 2", sans-serif;
     font-optical-sizing: auto;
     font-weight: 800;
     font-style: normal;
-    font-size: 8vw;
+    font-size: min(calc(min(40vh, 50vw) / 2.2), 15vw);
     background: linear-gradient(
       to right,
       #FFB3BA, #E0BBE4, #BAE1FF, #BAFFC9, #FFFFBA, #FFDFBA, #FFB3BA
@@ -158,14 +162,15 @@
 
   #introRules {
     font-family: "Baloo 2", sans-serif;
-    font-size: 2vw;
+    font-size: 3vw;
     color: #333;
     text-align: left;
     background-color: rgba(255, 255, 255, 0.5);
     padding: 2vh;
     border-radius: 10px;
     max-width: 80%;
-    overflow-y: auto;
+    overflow-x: hidden;
+    overflow-y: hidden;
     max-height: 60vh;
     animation: fadeIn 2s ease-in-out;
     position: relative;
@@ -175,18 +180,41 @@
     margin-top: 0;
   }
 
+  @media (min-width: 1001px) {
+    #introRules {
+      font-size: 1.8vw;
+    }
+  }
+
+  @media (max-height: 699px) and (min-width: 700px) and (max-width: 1000px) {
+    #introRules {
+      font-size: 2vw;
+    }
+  }
+
+  @media (max-height: 499px) and (min-width: 550px) and (max-width: 700px) {
+    #introRules {
+      font-size: 2.1vw;
+    }
+  }
+
   #introRules ul {
     list-style-type: none;
     padding-left: 0;
+    margin: 0;
   }
 
   #introRules li {
     margin-bottom: 1vh;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 1em;
-    flex-wrap: wrap;
+    gap: 0.6em;
+    flex-wrap: nowrap;
+  }
+
+  #introRules li .control-label {
+    min-width: 0;
+    white-space: nowrap;
   }
 
   #introRules li .control-group {
@@ -211,24 +239,15 @@
     position: absolute;
     top: 2vh;
     right: 2vh;
-    font-size: 1.2vw;
+    font-size: 1.5vw;
     color: #333;
     font-weight: 600;
     opacity: 0.8;
   }
 
-  @media (orientation: portrait) {
-    .baloo-2-intro-title {
-      font-size: 16vw;
-    }
-    #introRules {
-      font-size: 4vw;
-    }
-    .also-plays-text {
-      font-size: 4.8vw;
-      top: auto;
-      bottom: 2vh;
-    }
+  @media (max-height: 499px) and (min-width: 800px), (max-height: 299px) and (max-width: 799px) {
+    #introRules { font-size: 4.5vh; }
+    .also-plays-text { font-size: 4.5vh; }
   }
 
   @keyframes rainbow {
