@@ -180,6 +180,12 @@
     margin-top: 0;
   }
 
+  #introRules .click-to-play-prompt {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
   @media (min-width: 1001px) {
     #introRules {
       font-size: 1.8vw;
@@ -527,6 +533,7 @@ let isIntroScreen = true;
 let introTapStarted = false;
 let lastModeSwitchTime = 0;
 const MODE_SWITCH_COOLDOWN = 300; // 300ms cooldown for mode switching
+let welcomePlayed = false;
 let isShiftKeyDown = false;
 let colorChangesSinceIntro = 0;
 let lastPointerPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -581,11 +588,14 @@ let currentAIAudio = null;
 const audioFileSets = {
   'blue': { displayName: 'Blue', count: 7, played: [], currentShuffle: [] },
   'green': { displayName: 'Green', count: 9, played: [], currentShuffle: [] },
+  'controls summary - desktop': { displayName: 'Controls Summary - Desktop', count: 1, played: [], currentShuffle: [] },
+  'controls summary - mobile': { displayName: 'Controls Summary - Mobile', count: 1, played: [], currentShuffle: [] },
   'magenta': { displayName: 'Magenta', count: 7, played: [], currentShuffle: [] },
+  'returning to menu - desktop': { displayName: 'Returning to Menu - Desktop', count: 2, played: [], currentShuffle: [] },
+  'returning to menu - mobile': { displayName: 'Returning to Menu - Mobile', count: 2, played: [], currentShuffle: [] },
   'rainbow': { displayName: 'Rainbow', count: 2, played: [], currentShuffle: [] },
   'red': { displayName: 'Red', count: 2, played: [], currentShuffle: [] },
   'yellow': { displayName: 'Yellow', count: 4, played: [], currentShuffle: [] },
-  'here are your controls': { displayName: 'Here are your controls', count: 2, played: [], currentShuffle: [] },
   "i'll be quiet when you advance": { displayName: "I'll be quiet when you advance", count: 1, played: [], currentShuffle: [] },
   "i'll tell you the colors when you advance": { displayName: "I'll tell you the colors when you advance", count: 1, played: [], currentShuffle: [] },
   "i'll give you one color at a time": { displayName: "I'll give you one color at a time", count: 1, played: [], currentShuffle: [] },
@@ -1501,17 +1511,27 @@ function jiggleTitle() {
 }
 
 /**
- * When the return-to-menu control is pressed at the menu (Escape on desktop, 3-finger tap on mobile),
+ * Plays a random Welcome MP3 (Desktop or Mobile based on platform).
+ * Eaten first click/tap triggers this once; no anti-repetition needed.
+ */
+function playWelcome() {
+  const n = 1 + Math.floor(Math.random() * 2); // 1 or 2
+  const filename = isMobile ? `Welcome - Mobile (${n}).mp3` : `Welcome - Desktop (${n}).mp3`;
+  playAudioFile(`audio/generated/${encodeURIComponent(filename)}`);
+}
+
+/**
+ * When the return-to-menu control is pressed AT the menu (Escape on desktop, 3-finger tap on mobile),
  * jiggles the title and plays the controls summary voiceover.
  * Desktop: "This is Coloreka! You're at the menu. Here are the controls: Advance to the next color by clicking. Toggle 2 color mode by pressing Shift. Toggle saying the colors by pressing S. To hear this again, press Escape."
  * Mobile: "This is Coloreka! You're at the menu. Here are the controls: Advance to the next color by tapping. Toggle 2 color mode by tapping with two fingers. Toggle saying the colors by long pressing. To hear this again, tap with three fingers."
  */
 async function celebrateIntroScreen() {
   jiggleTitle();
-  const controlsSummaryFilename = isMobile ? 'Controls Summary - Mobile.mp3' : 'Controls Summary - Desktop.mp3';
-  const controlsSummaryPath = `audio/generated/${encodeURIComponent(controlsSummaryFilename)}`;
-  const played = await playAudioFile(controlsSummaryPath);
-  if (!played) speak("Here are your controls"); // Fallback if MP3 unavailable
+  const key = isMobile ? 'controls summary - mobile' : 'controls summary - desktop';
+  const path = getNextAudioFile(key);
+  const played = path ? await playAudioFile(path) : false;
+  if (!played) speak("Here are your controls", true); // Fallback: device voice only
 }
 
 function followRipplesToPointer() {
@@ -1621,7 +1641,19 @@ function returnToIntro() {
   currentLeftColor = undefined;
   currentRightColor = undefined;
   updateIntroRules();
-  speak("Here are your controls");
+  const key = isMobile ? 'returning to menu - mobile' : 'returning to menu - desktop';
+  const path = getNextAudioFile(key);
+  if (path) {
+    playAudioFile(path).then((played) => {
+      if (!played) {
+        console.warn('returnToIntro: Returning to Menu MP3 failed. Path:', path);
+        speak("Here are your controls", true); // Fallback: device voice only
+      }
+    });
+  } else {
+    console.warn('returnToIntro: getNextAudioFile returned null for key:', key);
+    speak("Here are your controls", true); // Fallback: device voice only
+  }
 }
 
 function checkMobile() {
@@ -1693,6 +1725,14 @@ function requestFullscreen() {
 
 document.body.addEventListener('mousedown', (event) => {
   if (isMobile) {
+    return;
+  }
+
+  // Eat first click: play Welcome and reveal full controls
+  if (!welcomePlayed) {
+    welcomePlayed = true;
+    playWelcome();
+    updateIntroRules();
     return;
   }
 
@@ -1913,6 +1953,18 @@ document.body.addEventListener('touchstart', (event) => {
 }, { passive: false });
 
 document.body.addEventListener('touchend', (event) => {
+  // Eat first tap: play Welcome and reveal full controls
+  if (!welcomePlayed) {
+    welcomePlayed = true;
+    clearTimeout(longPressTimer);
+    introTapStarted = false;
+    touchCount = 0;
+    playWelcome();
+    updateIntroRules();
+    event.preventDefault();
+    return;
+  }
+
   // Block app controls if MP3 generator modal is open
   if (isMP3GeneratorModalOpen()) {
     return;
