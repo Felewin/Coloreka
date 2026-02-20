@@ -1505,10 +1505,12 @@ function syncRightColorPanel(useFadeTransition = false) {
     if (!currentRightColor || currentRightColor === currentLeftColor) {
       currentRightColor = getRandomColor(currentLeftColor);
     }
-    if (useFadeTransition) {
-      applyFadeTransition('rightColor', currentRightColor);
-    } else {
-      setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
+    if (!isIntroScreen) {
+      if (useFadeTransition) {
+        applyFadeTransition('rightColor', currentRightColor);
+      } else {
+        setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
+      }
     }
   }
 }
