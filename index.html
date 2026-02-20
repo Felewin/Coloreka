@@ -978,6 +978,7 @@ function startApp() {
     currentLeftColor = getRandomColor();
     currentRightColor = getRandomColor(currentLeftColor);
     applyFadeTransition('leftColor', currentLeftColor);
+    syncRightColorPanel(true);
     requestFullscreen();
 
     // Play gong sound when advancing from menu
@@ -1497,6 +1498,21 @@ function createRipple(x, y, followPointer = true) {
   setTimeout(() => ripple.remove(), 850);
 }
 
+function syncRightColorPanel(useFadeTransition = false) {
+  const rightColorElement = document.getElementById('rightColor');
+  rightColorElement.style.display = isTwoColorMode ? 'block' : 'none';
+  if (isTwoColorMode) {
+    if (!currentRightColor || currentRightColor === currentLeftColor) {
+      currentRightColor = getRandomColor(currentLeftColor);
+    }
+    if (useFadeTransition) {
+      applyFadeTransition('rightColor', currentRightColor);
+    } else {
+      setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
+    }
+  }
+}
+
 function toggleTwoColorMode() {
   const currentTime = new Date().getTime();
   if (currentTime - lastModeSwitchTime < MODE_SWITCH_COOLDOWN) {
@@ -1505,16 +1521,10 @@ function toggleTwoColorMode() {
   lastModeSwitchTime = currentTime;
 
   isTwoColorMode = !isTwoColorMode;
-  const rightColorElement = document.getElementById('rightColor');
+  syncRightColorPanel();
   if (isTwoColorMode) {
-    rightColorElement.style.display = 'block';
-    if (!currentRightColor || currentRightColor === currentLeftColor) {
-      currentRightColor = getRandomColor(currentLeftColor);
-    }
-    setLayerColor(rightColorElement.querySelector('.colorLayer'), currentRightColor);
     speak("I'll give you two colors at once", false, "two color mode");
   } else {
-    rightColorElement.style.display = 'none';
     speak("I'll give you one color at a time", false, "single color mode");
   }
 }
@@ -1537,7 +1547,6 @@ function returnToIntro() {
   document.getElementById('leftColor').innerHTML = '<div class="colorLayer"></div>';
   document.getElementById('rightColor').innerHTML = '<div class="colorLayer"></div>';
   document.getElementById('rightColor').style.display = 'none';
-  isTwoColorMode = false;
   currentLeftColor = undefined;
   currentRightColor = undefined;
   speak("Here are your controls");
