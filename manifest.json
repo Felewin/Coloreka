@@ -1,7 +1,7 @@
 {
   "name": "Coloreka!",
   "short_name": "Coloreka",
-  "description": "Practice supersight! Discover colors and hear their names. A playful, accessible color experience.",
+  "description": "Practice supersight! Discover colors and hear their names. A playful, accessible experience.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
