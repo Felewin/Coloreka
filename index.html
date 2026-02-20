@@ -1707,15 +1707,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('keydown', (event) => {
   if (!isMobile) {
-    // Allow Quote and Escape keys to work even when modal is open
-    // (Quote opens modal, Escape closes it or returns to intro)
+    // Quote opens modal when closed. When modal is open, let apostrophe type into the input.
     if (event.code === 'Quote') {
-      event.preventDefault(); // Prevent apostrophe from being typed into input field
       if (isMP3GeneratorModalOpen()) {
-        hideMP3GeneratorModal();
-      } else {
-        showMP3GeneratorModal();
+        // Don't handle - let user type apostrophes in the text box
+        return;
       }
+      event.preventDefault();
+      showMP3GeneratorModal();
       return;
     }
     
