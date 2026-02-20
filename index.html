@@ -546,6 +546,9 @@ const swishSounds = ['audio/Swish (1).mp3', 'audio/Swish (2).mp3', 'audio/Swish 
 // May be rate limited or unavailable, in which case the function will return false
 const TTS_SERVICE_URL = 'https://steep-sound-5d19.hunterbobeck.workers.dev';
 
+// MP3 generator (Quote key) is a dev feature: only active when address bar suggests local (localhost, 127.0.0.1, file://)
+const isRunningLocally = /localhost|127\.0\.0\.1|^file:\/\//i.test(location.href);
+
 // Tracks the currently playing audio from the cloud TTS service
 // Used to stop playback if a new voice request comes in (either cloud or device voice)
 // This ensures only one voice plays at a time and prevents overlapping audio
@@ -590,6 +593,8 @@ const audioFileSets = {
   'green': { displayName: 'Green', count: 9, played: [], currentShuffle: [] },
   'controls summary - desktop': { displayName: 'Controls Summary - Desktop', count: 1, played: [], currentShuffle: [] },
   'controls summary - mobile': { displayName: 'Controls Summary - Mobile', count: 1, played: [], currentShuffle: [] },
+  'first color': { displayName: 'First Color', count: 4, played: [], currentShuffle: [] },
+  'first colors': { displayName: 'First Colors', count: 4, played: [], currentShuffle: [] },
   'magenta': { displayName: 'Magenta', count: 7, played: [], currentShuffle: [] },
   'returning to menu - desktop': { displayName: 'Returning to Menu - Desktop', count: 2, played: [], currentShuffle: [] },
   'returning to menu - mobile': { displayName: 'Returning to Menu - Mobile', count: 2, played: [], currentShuffle: [] },
@@ -1041,6 +1046,12 @@ function applyFadeTransition(elementId, newColor) {
 
 function startApp() {
   if (isIntroScreen) {
+    // Stop Controls Summary if it's still playing when user advances
+    if (currentAIAudio && decodeURIComponent(currentAIAudio.src || '').includes('Controls Summary')) {
+      currentAIAudio.pause();
+      currentAIAudio.currentTime = 0;
+      currentAIAudio = null;
+    }
     isIntroScreen = false;
     document.getElementById('introScreen').style.display = 'none';
     currentLeftColor = getRandomColor();
@@ -1051,6 +1062,10 @@ function startApp() {
 
     // Play gong sound when advancing from menu
     playGongSound();
+    // Play First Color / First Colors MP3 (single vs two-color mode)
+    const firstKey = isTwoColorMode ? 'first colors' : 'first color';
+    const firstPath = getNextAudioFile(firstKey);
+    if (firstPath) playAudioFile(firstPath);
   }
 }
 
@@ -1690,6 +1705,10 @@ function checkMobile() {
 
 function updateIntroRules() {
   const introRules = document.getElementById('introRules');
+  if (!welcomePlayed) {
+    introRules.innerHTML = `<p style="margin: 0; font-size: inherit;">${isMobile ? 'Tap to play!' : 'Click to play!'}</p>`;
+    return;
+  }
   const alsoPlaysText = isMobile ? '' : '<div class="also-plays-text"><img src="emojis/selfie-bright.png" alt="" class="control-emoji"> Also plays on mobile!</div>';
   /* Preserve gradient animation progress: use negative delay so new elements start where the 1.25s cycle currently is */
   const gradientDelay = -(Date.now() % 1250);
@@ -1757,7 +1776,7 @@ function isMP3GeneratorModalOpen() {
 }
 
 function showMP3GeneratorModal() {
-  if (isMobile) return; // Desktop only feature
+  if (!isRunningLocally || isMobile) return; // Dev feature: desktop only, local only
   
   const modal = document.getElementById('mp3GeneratorModal');
   const input = document.getElementById('mp3GeneratorInput');
@@ -1846,18 +1865,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('keydown', (event) => {
+  // Quote key: dev feature, works before welcome, only when running locally (not GitHub Pages)
+  if (event.code === 'Quote' && isRunningLocally && !isMobile) {
+    if (isMP3GeneratorModalOpen()) return; // Let apostrophe type into the input
+    event.preventDefault();
+    showMP3GeneratorModal();
+    return;
+  }
+
+  // Block all other app controls until initial click/tap has been eaten
+  if (!welcomePlayed) return;
   if (!isMobile) {
-    // Quote opens modal when closed. When modal is open, let apostrophe type into the input.
-    if (event.code === 'Quote') {
-      if (isMP3GeneratorModalOpen()) {
-        // Don't handle - let user type apostrophes in the text box
-        return;
-      }
-      event.preventDefault();
-      showMP3GeneratorModal();
-      return;
-    }
-    
     // Block all other app controls if MP3 generator modal is open
     if (isMP3GeneratorModalOpen()) {
       return;
@@ -1902,6 +1920,7 @@ document.addEventListener('mousemove', (event) => {
 });
 
 document.addEventListener('keyup', (event) => {
+  if (!welcomePlayed) return;
   if (!isMobile) {
     // Block app controls if MP3 generator modal is open
     if (isMP3GeneratorModalOpen()) {
@@ -1928,6 +1947,12 @@ document.body.addEventListener('touchstart', (event) => {
   touchCount = event.touches.length;
   isLongPress = false;
   touchStartY = event.touches[0].clientY;
+
+  // Before welcome eaten: only track touch for touchend to consume; do not start long press or other handlers
+  if (!welcomePlayed) {
+    introTapStarted = true;
+    return;
+  }
 
   if (isIntroScreen) {
     introTapStarted = true;
