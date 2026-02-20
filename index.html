@@ -217,6 +217,33 @@
     white-space: nowrap;
   }
 
+  /*
+   * Fix layout shift on toggle rows: the label text changes between two variants.
+   * We set min-width to the longer variant so the panel size never changes when
+   * the user toggles. Responsivity (font-size media queries) stays consistent.
+   */
+
+  /* Sound row: "Say the color when advancing" (longer) vs "Stay quiet when advancing" */
+  #introRules li.sound-toggle-row .control-label {
+    min-width: 28ch;
+  }
+
+  /* Mode row: "Switch to single-color mode" (longer) vs "Switch to two-color mode" */
+  #introRules li.mode-toggle-row .control-label {
+    min-width: 30ch;
+  }
+
+  /* Gradient effect on dynamic label text (pastel purple, blue from title, to instructions black, animated like title) */
+  #introRules .control-label-gradient {
+    display: inline;
+    background: linear-gradient(to right, #9B8BAC, #7AA3BC, #9B8BAC);
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: rainbow 1.25s linear infinite;
+  }
+
   #introRules li .control-group {
     flex-shrink: 0;
     margin-left: auto;
@@ -1420,6 +1447,7 @@ function vibrateGentle() {
 
 function toggleSound() {
   soundOn = !soundOn;
+  if (isIntroScreen) updateIntroRules();
   speak(soundOn ? "I'll tell you the colors when you advance" : "I'll be quiet when you advance", false, soundOn ? "Saying the colors" : "muted"); // MP3 for both; device voice fallback
 }
 
@@ -1543,6 +1571,7 @@ function toggleTwoColorMode() {
 
   isTwoColorMode = !isTwoColorMode;
   syncRightColorPanel();
+  if (isIntroScreen) updateIntroRules();
   if (isTwoColorMode) {
     speak("I'll give you two colors at once", false, "two color mode");
   } else {
@@ -1570,6 +1599,7 @@ function returnToIntro() {
   document.getElementById('rightColor').style.display = 'none';
   currentLeftColor = undefined;
   currentRightColor = undefined;
+  updateIntroRules();
   speak("Here are your controls");
 }
 
@@ -1608,14 +1638,17 @@ function checkMobile() {
 function updateIntroRules() {
   const introRules = document.getElementById('introRules');
   const alsoPlaysText = isMobile ? '' : '<div class="also-plays-text">🤳 Also plays on mobile!</div>';
+  /* Preserve gradient animation progress: use negative delay so new elements start where the 1.25s cycle currently is */
+  const gradientDelay = -(Date.now() % 1250);
+  const gradientStyle = `style="animation-delay: ${gradientDelay}ms"`;
   introRules.innerHTML = `
     ${alsoPlaysText}
     <h3>${isMobile ? '🤳 Mobile Controls!' : '🖥️ Desktop Controls!'}</h3>
     <ul>
       <li><span class="control-label">▶️ <strong>Advance to the next color</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Tap</span>' : '<span class="control-pill">Click</span><span class="control-sep">|</span><span class="control-pill">Enter</span><span class="control-sep">|</span><span class="control-pill">Spacebar</span>'}</span></li>
-      <li><span class="control-label">🔄 <strong>Switch between single or two-color mode</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Two-finger tap</span>' : '<span class="control-pill">Shift</span>'}</span></li>
-      <li><span class="control-label">🔊 <strong>Toggle telling me the colors when advancing</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Long press</span>' : '<span class="control-pill">S</span>'}</span></li>
-      <li><span class="control-label">📜 <strong>Return here / Summarize these controls</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Three-finger tap</span>' : '<span class="control-pill">Escape</span>'}</span></li>
+      <li class="mode-toggle-row"><span class="control-label">🔄 <strong>Switch to <span class="control-label-gradient" ${gradientStyle}>${isTwoColorMode ? 'single' : 'two'}</span>-color mode</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">2-finger tap</span>' : '<span class="control-pill">Shift</span>'}</span></li>
+      <li class="sound-toggle-row"><span class="control-label">🔊 <strong><span class="control-label-gradient" ${gradientStyle}>${soundOn ? 'Stay quiet' : 'Say the color'}</span> when advancing</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">Long press</span>' : '<span class="control-pill">S</span>'}</span></li>
+      <li><span class="control-label">📜 <strong>View/say these controls</strong>!</span><span class="control-group">${isMobile ? '<span class="control-pill">3-finger tap</span>' : '<span class="control-pill">Escape</span>'}</span></li>
     </ul>
   `;
 }
