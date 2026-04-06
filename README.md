@@ -2,7 +2,7 @@
 Practice supersight! Discover colors and hear their names. A playful, accessible experience.
 
 ## Tech stack
-📄 HTML5  
+🌐 HTML5  
 🎨 CSS  
 ⚡ vanilla JavaScript  
 📱 webapp manifest  
