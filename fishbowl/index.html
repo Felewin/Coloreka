@@ -803,6 +803,14 @@
 		document.addEventListener('keydown', (pressing) =>
 		{
 			if (pressing.key === 'Escape') collapseTheTimer();
+
+			// - The spacebar plays or pauses the countdown from anywhere — overlay open or bar minimized — so nobody mouses onto the right button mid-game.
+			// - Preventing the default keeps space from scrolling the rules or re-firing whichever button was last clicked and still holds focus.
+			if (pressing.key === ' ')
+			{
+				pressing.preventDefault();
+				startOrPauseTheTimer();
+			}
 		});
 
 		// Toggles browser fullscreen, for propping the page up as the room's dedicated timer.
