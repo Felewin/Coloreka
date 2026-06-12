@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<!--
+	Fishbowl — a simple, elegant single page for playing the party game Fishbowl in person.
+	- The real game happens with paper slips and bowls; this page only presents the rules and offers a 60-second timer.
+	- Everything floats over a full-length underwater video (AA VFX's “4K Underwater Shine”) looping behind frosted glass panels.
+	- The page is fully self-contained (inline CSS and JS) beside its two media assets, so the whole folder can lift out to its own domain someday.
+	- The primary display is desktop-scale — a big TV fed over HDMI — with phones working but secondary.
+-->
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Fishbowl</title>
+	<!-- The favicon is an inline SVG of a fish emoji, so no extra icon file is needed. -->
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐟</text></svg>">
+
+	<style>
+		/* #region Foundation */
+
+		/* Box sizing and resets, so widths and paddings behave intuitively everywhere. */
+		*
+		{
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		/* - The page's design tokens, kept in one place:
+		   	- deep navy for text over the light frosted panels;
+		   	- frosted whites for the glass panels themselves;
+		   	- an aqua accent for interactive highlights. */
+		:root
+		{
+			--navy: #16335f;
+			--navy-soft: #2c4a78;
+			--frost: rgba(255, 255, 255, 0.62);
+			--frost-strong: rgba(255, 255, 255, 0.78);
+			--aqua: #2c8fb8;
+			--panel-radius: 24px;
+			--panel-shadow: 0 8px 40px rgba(22, 51, 95, 0.18);
+		}
+
+		/* - The base typography: an elegant, widely available system stack, sized generously because the primary display is a big TV.
+		   - The body never scrolls horizontally; the video behind is fixed, so only the content scrolls. */
+		body
+		{
+			font-family: 'Segoe UI', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif;
+			color: var(--navy);
+			overflow-x: hidden;
+		}
+
+		/* #endregion */
+
+
+		/* #region The underwater scene */
+
+		/* - The full-length background video, pinned behind everything:
+		   	- fixed and centered, covering the viewport at any aspect ratio;
+		   	- muted autoplay loop, so browsers allow it without interaction. */
+		#scene
+		{
+			position: fixed;
+			inset: 0;
+			width: 100vw;
+			height: 100vh;
+			object-fit: cover;
+			z-index: -2;
+		}
+
+		/* A faint white veil over the video, brightening the scene so the light frosted panels and navy text stay readable. */
+		#veil
+		{
+			position: fixed;
+			inset: 0;
+			background: rgba(255, 255, 255, 0.14);
+			z-index: -1;
+		}
+
+		/* #endregion */
+
+
+		/* #region The frosted layout */
+
+		/* The content column: comfortably wide for TV reading, centered; the footer below it carries the clearance for the sticky timer bar. */
+		main
+		{
+			max-width: 880px;
+			margin: 0 auto;
+			padding: 3rem 2rem 1rem;
+		}
+
+		/* - The shared frosted glass surface, worn by the rules panels and the sticky timer bar alike:
+		   	- translucent white with a backdrop blur, so the underwater scene glows through;
+		   	- a gentle navy-tinted shadow. */
+		.panel,
+		#timerBar
+		{
+			background: var(--frost);
+			backdrop-filter: blur(14px);
+			-webkit-backdrop-filter: blur(14px);
+			box-shadow: var(--panel-shadow);
+		}
+
+		/* The rules panels themselves: soft rounded corners and roomy padding. */
+		.panel
+		{
+			border-radius: var(--panel-radius);
+			padding: 2.2rem 2.5rem;
+			margin-bottom: 2rem;
+		}
+
+		/* #endregion */
+
+
+		/* #region The heading */
+
+		/* The hero header panel introducing the page. */
+		header
+		{
+			text-align: center;
+			padding: 3.5rem 2rem 0;
+		}
+
+		/* The one-word title, light and large, with a navy-to-aqua shimmer befitting water. */
+		header h1
+		{
+			font-size: clamp(3.5rem, 8vw, 6rem);
+			font-weight: 300;
+			letter-spacing: 0.08em;
+			background: linear-gradient(120deg, var(--navy) 30%, var(--aqua) 70%);
+			-webkit-background-clip: text;
+			background-clip: text;
+			-webkit-text-fill-color: transparent;
+			color: transparent;
+		}
+
+		/* The quiet subtitle line beneath the title. */
+		header p
+		{
+			font-size: clamp(1.1rem, 2vw, 1.4rem);
+			color: var(--navy-soft);
+			margin-top: 0.6rem;
+			font-weight: 350;
+		}
+
+		/* #endregion */
+
+
+		/* #region The rules */
+
+		/* Each rules panel's section heading, with a small wave flourish before it. */
+		.panel h2
+		{
+			font-size: clamp(1.6rem, 3vw, 2.2rem);
+			font-weight: 500;
+			margin-bottom: 1.1rem;
+		}
+		.panel h2::before
+		{
+			content: '〜 ';
+			color: var(--aqua);
+		}
+
+		/* - The rules prose and lists, sized for reading from a couch:
+		   	- generous line height;
+		   	- list items spaced apart so each rule breathes. */
+		.panel p,
+		.panel li
+		{
+			font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+			line-height: 1.55;
+		}
+		.panel ul
+		{
+			list-style: none;
+		}
+		.panel ul li
+		{
+			padding-left: 1.6em;
+			position: relative;
+			margin-bottom: 0.65em;
+		}
+		.panel ul li:last-child
+		{
+			margin-bottom: 0;
+		}
+
+		/* Each list item is marked with a small bubble instead of a plain bullet. */
+		.panel ul li::before
+		{
+			content: '◦';
+			position: absolute;
+			left: 0.45em;
+			color: var(--aqua);
+			font-weight: 700;
+		}
+
+		/* The example slips: little frosted chips that look like slips of paper. */
+		.examples
+		{
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.6rem;
+			margin-top: 0.9rem;
+		}
+		.examples span
+		{
+			background: var(--frost-strong);
+			border: 1px solid rgba(22, 51, 95, 0.15);
+			border-radius: 10px;
+			padding: 0.35em 0.8em;
+			font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+			font-style: italic;
+			box-shadow: 0 2px 8px rgba(22, 51, 95, 0.08);
+		}
+
+		/* Inline emphasis for the rules' most load-bearing phrases. */
+		.panel strong
+		{
+			font-weight: 650;
+		}
+
+
+		/* The shared frosted card look, worn by the round cards here and the overlay's round quick-reference. */
+		.round,
+		#roundReference
+		{
+			background: var(--frost-strong);
+			border-radius: 18px;
+			box-shadow: 0 4px 18px rgba(22, 51, 95, 0.10);
+		}
+
+		/* The four round cards, laid out in a two-column grid on wide screens and stacking on narrow ones. */
+		.rounds
+		{
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+			gap: 1.4rem;
+			margin-top: 1.4rem;
+		}
+		.round
+		{
+			padding: 1.5rem 1.7rem;
+		}
+
+		/* Each round card's heading: the round number in aqua, then its name. */
+		.round h3
+		{
+			font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+			font-weight: 600;
+			margin-bottom: 0.7rem;
+		}
+		.round h3 em
+		{
+			font-style: normal;
+			color: var(--aqua);
+		}
+
+		/* The round cards reuse the panel list styling at a slightly smaller size. */
+		.round li
+		{
+			font-size: clamp(0.98rem, 1.6vw, 1.18rem);
+		}
+
+		/* #endregion */
+
+
+		/* #region The timer */
+
+		/* The shared look for the timer's buttons: frosted pills with navy text and an aqua lift on hover. */
+		.wave-button
+		{
+			font: inherit;
+			font-size: clamp(1rem, 1.6vw, 1.2rem);
+			font-weight: 550;
+			color: var(--navy);
+			background: var(--frost-strong);
+			border: 1px solid rgba(44, 143, 184, 0.35);
+			border-radius: 999px;
+			padding: 0.5em 1.3em;
+			cursor: pointer;
+			transition: transform 0.15s ease, box-shadow 0.15s ease;
+		}
+		.wave-button:hover
+		{
+			transform: translateY(-2px);
+			box-shadow: 0 6px 18px rgba(44, 143, 184, 0.25);
+		}
+
+		/* Both time readouts count in steady monospaced digits, so the display never wobbles as numbers change. */
+		.time-readout
+		{
+			font-variant-numeric: tabular-nums;
+			font-weight: 600;
+		}
+
+
+		/* - The slim sticky timer bar, floating centered at the bottom of the viewport:
+		   	- always visible while reading the rules;
+		   	- holding the compact readout plus the start/pause and expand controls. */
+		#timerBar
+		{
+			position: fixed;
+			left: 50%;
+			bottom: 1.4rem;
+			transform: translateX(-50%);
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			border-radius: 999px;
+			padding: 0.7rem 1.6rem;
+			z-index: 5;
+		}
+		#timerBar .time-readout
+		{
+			font-size: clamp(1.5rem, 3vw, 2rem);
+		}
+
+
+		/* - The expanded timer overlay, covering the viewport as its own frosted layer:
+		   	- a fixed overlay, so the rules keep their scroll position untouched beneath it;
+		   	- the huge countdown centered, with the controls and the round quick-reference below. */
+		#timerOverlay
+		{
+			position: fixed;
+			inset: 0;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 1.6rem;
+			background: rgba(255, 255, 255, 0.45);
+			backdrop-filter: blur(26px);
+			-webkit-backdrop-filter: blur(26px);
+			z-index: 10;
+		}
+		#timerOverlay[hidden]
+		{
+			display: none;
+		}
+
+		/* The huge countdown digits, sized to be readable across a living room. */
+		#overlayTime
+		{
+			font-size: clamp(7rem, 24vw, 17rem);
+			line-height: 1;
+			color: var(--navy);
+		}
+
+		/* While time is up, the digits pulse aqua to carry the moment visually. */
+		#timerOverlay.finished #overlayTime,
+		#timerBar.finished .time-readout
+		{
+			color: var(--aqua);
+			animation: timeUpPulse 0.8s ease-in-out infinite alternate;
+		}
+		@keyframes timeUpPulse
+		{
+			from	{opacity: 1;}
+			to		{opacity: 0.45;}
+		}
+
+		/* The overlay's row of controls beneath the digits. */
+		#overlayControls
+		{
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 0.9rem;
+		}
+
+		/* - The round quick-reference card in the overlay:
+		   	- one compact line per round, so mid-game nobody rereads the full rules;
+		   	- a shared penalty reminder beneath. */
+		#roundReference
+		{
+			padding: 1.1rem 1.6rem;
+			max-width: min(92vw, 640px);
+		}
+		#roundReference p
+		{
+			font-size: clamp(0.95rem, 1.7vw, 1.15rem);
+			line-height: 1.65;
+		}
+		#roundReference p em
+		{
+			font-style: normal;
+			font-weight: 650;
+			color: var(--aqua);
+		}
+		#roundReference .penalty-note
+		{
+			margin-top: 0.4rem;
+			font-size: clamp(0.85rem, 1.5vw, 1rem);
+			color: var(--navy-soft);
+		}
+
+		/* #endregion */
+
+
+		/* #region The footer */
+
+		/* The small credits footer, quiet beneath the rules and clear of the sticky timer bar. */
+		footer
+		{
+			text-align: center;
+			padding: 0 2rem 7.5rem;
+			font-size: clamp(0.85rem, 1.4vw, 1rem);
+			color: var(--navy-soft);
+		}
+		footer p
+		{
+			margin-bottom: 0.35rem;
+		}
+		footer a
+		{
+			color: var(--aqua);
+			text-decoration: none;
+		}
+		footer a:hover
+		{
+			text-decoration: underline;
+		}
+
+		/* #endregion */
+
+
+		/* #region The bubbles */
+
+		/* - The bubble layer covers the viewport above everything (even the timer overlay) without catching any clicks.
+		   - Both the faint ambient stream and the time's-up flood spawn their bubbles here. */
+		#bubbleLayer
+		{
+			position: fixed;
+			inset: 0;
+			pointer-events: none;
+			overflow: hidden;
+			z-index: 20;
+		}
+
+		/* - One bubble: a soft translucent sphere with an off-center highlight, like a real air bubble catching light.
+		   - Each bubble's size, position, sway, opacity, and rising speed arrive as inline styles when it is spawned. */
+		.bubble
+		{
+			position: absolute;
+			bottom: -8vh;
+			border-radius: 50%;
+			background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.25) 45%, rgba(180, 224, 240, 0.18) 70%);
+			box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.6), 0 0 10px rgba(180, 224, 240, 0.25);
+			animation: bubbleRise linear forwards, bubbleSway 1.6s ease-in-out infinite alternate;
+		}
+
+		/* Rising carries a bubble from below the viewport to above it, where it is removed. */
+		@keyframes bubbleRise
+		{
+			from	{transform: translateY(0);}
+			to		{transform: translateY(-125vh);}
+		}
+
+		/* Swaying drifts a bubble gently side to side as it rises, by its own per-bubble distance. */
+		@keyframes bubbleSway
+		{
+			from	{margin-left: 0;}
+			to		{margin-left: var(--sway);}
+		}
+
+		/* #endregion */
+	</style>
+</head>
+<body>
+	<!-- The looping underwater scene behind everything, with its readability veil. -->
+	<video id="scene" src="underwater-shine-1080p.mp4" autoplay muted loop playsinline></video>
+	<div id="veil"></div>
+
+	<!-- The hero heading. -->
+	<header>
+		<h1>Fishbowl</h1>
+		<p>Slips of paper, two teams, four rounds, one bowl.</p>
+	</header>
+
+	<!-- - The rules: an elegant, complete retelling of Sam's Fishbowl presentation.
+		 - Every rule, clarification, and example from the deck survives here, resequenced for clean reading and expanded with the fourth round. -->
+	<main>
+		<!-- Filling the bowl: writing the slips. -->
+		<section class="panel">
+			<h2>Fill the Bowl</h2>
+			<ul>
+				<li>Everyone writes words or phrases on slips of paper — <strong>no more than 4 words per slip</strong>, and around <strong>3 slips per person</strong> works nicely.</li>
+				<li>Keep them secret: don't show or tell anyone what you're writing.</li>
+				<li>Write legibly, and try not to be too obscure — stick to common knowledge, in English.</li>
+				<li>Fold each slip in half and drop it in the bowl.</li>
+			</ul>
+			<div class="examples">
+				<span>Forgive and forget</span>
+				<span>Microphone</span>
+				<span>It was the dog</span>
+				<span>Spicy mustard</span>
+			</div>
+		</section>
+
+		<!-- Forming the teams. -->
+		<section class="panel">
+			<h2>Form the Teams</h2>
+			<ul>
+				<li>Divide into two teams, each led by a captain.</li>
+				<li>Captains pick players schoolyard style — a coin flip decides who picks first.</li>
+				<li>Pick team names!</li>
+			</ul>
+		</section>
+
+		<!-- How play works across every round. -->
+		<section class="panel">
+			<h2>How Every Round Works</h2>
+			<ul>
+				<li>Teams take turns. On your turn, you have <strong>60 seconds</strong> to help your team guess as many slips as possible.</li>
+				<li>Every correct guess scores your team a point.</li>
+				<li><strong>Guesses must be exact</strong> — every word on the slip, in order, spoken by your team. If the slip says “I broke my elbow” and the timer ends with only “broke my elbow” guessed, it doesn't count.</li>
+				<li>You may skip a slip, but it <strong>costs your team a point</strong>. Set skipped slips aside, separate from both the bowl and the guessed pile.</li>
+				<li><strong>Pay attention and remember what's been guessed</strong> — the same slips come back in later rounds, and it's impossible to win if you don't.</li>
+				<li>The game is played in <strong>four rounds</strong>, each emptying the bowl before the next begins.</li>
+			</ul>
+		</section>
+
+		<!-- The four rounds, each with its allowances and penalties. -->
+		<section class="panel">
+			<h2>The Four Rounds</h2>
+			<div class="rounds">
+				<div class="round">
+					<h3><em>Round 1</em> · Talk</h3>
+					<ul>
+						<li>Describe the slip using only verbal cues — words that aren't on the slip.</li>
+						<li>Once your team guesses one of the slip's words, you may say that word; the rest stay forbidden until guessed.</li>
+						<li><strong>Penalty:</strong> saying a word on the slip, or acting it out, loses a point and sends the slip back into the bowl.</li>
+					</ul>
+				</div>
+				<div class="round">
+					<h3><em>Round 2</em> · Act</h3>
+					<ul>
+						<li>Charades — bodily actions only.</li>
+						<li>No pointing at objects or people in the room that are on the slip; even eye gestures count as pointing.</li>
+						<li><strong>Penalty:</strong> any words, noises, or pointing loses a point — words and noises also send the slip back into the bowl.</li>
+					</ul>
+				</div>
+				<div class="round">
+					<h3><em>Round 3</em> · One Word</h3>
+					<ul>
+						<li>Choose a single hint word carefully, say it, and sit still.</li>
+						<li>You may repeat your word, but nothing else.</li>
+						<li><strong>Penalty:</strong> more than one word, any noises, or acting it out loses a point and sends the slip back into the bowl.</li>
+					</ul>
+				</div>
+				<div class="round">
+					<h3><em>Round 4</em> · Sound Effects</h3>
+					<ul>
+						<li>Sound effects only — no words, no acting, body stays still.</li>
+						<li>The sonic twin of Round 3: paint the slip with nothing but sound.</li>
+						<li><strong>Penalty:</strong> words or acting loses a point and sends the slip back into the bowl.</li>
+					</ul>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<!-- The credits: the rules' source, and the background video's required attribution. -->
+	<footer>
+		<p>Rules from Sam's Fishbowl presentation, retold with love.</p>
+		<p>Underwater scene: <a href="https://youtu.be/QjD3JJAPofA" target="_blank" rel="noopener">“4K Underwater Shine”</a> by <a href="https://www.youtube.com/@AAvfx" target="_blank" rel="noopener">AA VFX</a>.</p>
+	</footer>
+
+	<!-- The bubble layer, where the ambient stream and the time's-up flood rise. -->
+	<div id="bubbleLayer"></div>
+
+	<!-- The slim sticky timer bar, always within reach while reading the rules. -->
+	<div id="timerBar">
+		<span class="time-readout" id="barTime">1:00</span>
+		<button class="wave-button" id="barStartPause">Start</button>
+		<button class="wave-button" id="barExpand" title="Expand the timer">⤢</button>
+	</div>
+
+	<!-- - The expanded timer overlay: the huge countdown, its controls, and the round quick-reference.
+		 - It lays over the rules as its own fixed layer, so closing it returns to the exact same scroll position. -->
+	<div id="timerOverlay" hidden>
+		<div class="time-readout" id="overlayTime">1:00</div>
+		<div id="overlayControls">
+			<button class="wave-button" id="overlayStartPause">Start</button>
+			<button class="wave-button" id="overlayReset">Reset</button>
+			<button class="wave-button" id="overlayFullscreen">Fullscreen</button>
+			<button class="wave-button" id="overlayCollapse">Close</button>
+		</div>
+		<div id="roundReference">
+			<p><em>1 · Talk</em> — describe with words not on the slip; guessed words become sayable.</p>
+			<p><em>2 · Act</em> — silent charades; no pointing at things in the room (eyes count).</p>
+			<p><em>3 · One Word</em> — say one chosen word, then sit still; repeats allowed.</p>
+			<p><em>4 · Sound Effects</em> — sounds only; no words, no acting.</p>
+			<p class="penalty-note">Breaking a round's rule costs a point and returns the slip to the bowl. Skipping costs a point too.</p>
+		</div>
+	</div>
+
+	<script>
+		// #region Timer state
+
+		// - The countdown always runs from this fixed duration, matching the game's 60-second turns.
+		const turnSeconds
+			= 60;
+
+		// - The seconds left on the clock while paused (or before the first start).
+		// - While the countdown is running, the precise remaining time is derived from `endAtMs` instead, so ticking stays drift-free.
+		let remainingSeconds
+			= turnSeconds;
+
+		// The moment (in milliseconds since the epoch) when the running countdown will reach zero, or null while paused.
+		let endAtMs
+			= null;
+
+		// The handle for the repeating tick that refreshes the displays while running, or null while paused.
+		let tickingHandle
+			= null;
+
+		// The screen wake lock held while the countdown runs, or null when the screen is free to sleep.
+		let screenWakeLock
+			= null;
+
+		// The page elements the timer and bubbles work with, looked up once and shared by everything below.
+		const timerBar
+			= document.getElementById('timerBar');
+		const timerOverlay
+			= document.getElementById('timerOverlay');
+		const barTime
+			= document.getElementById('barTime');
+		const overlayTime
+			= document.getElementById('overlayTime');
+		const barStartPause
+			= document.getElementById('barStartPause');
+		const overlayStartPause
+			= document.getElementById('overlayStartPause');
+		const bubbleLayer
+			= document.getElementById('bubbleLayer');
+
+		// #endregion
+
+
+		// #region Showing the time
+
+		// Formats a count of seconds as a clock readout, like 1:00 or 0:07.
+		function formatAsClock(seconds)
+		{
+			const minutes
+				= Math.floor(seconds / 60);
+			const secondsWithinMinute
+				= seconds % 60;
+			return `${minutes}:${String(secondsWithinMinute).padStart(2, '0')}`;
+		}
+
+		// Refreshes both readouts (the bar's and the overlay's) plus both start/pause button labels, so every surface tells the same story.
+		function showTheTimeEverywhere()
+		{
+			const clock
+				= formatAsClock(remainingSeconds);
+			barTime.textContent
+				= clock;
+			overlayTime.textContent
+				= clock;
+
+			const startPauseLabel
+				= (endAtMs !== null) ? 'Pause'
+				: (remainingSeconds < turnSeconds && remainingSeconds > 0) ? 'Resume'
+				: 'Start';
+			barStartPause.textContent
+				= startPauseLabel;
+			overlayStartPause.textContent
+				= startPauseLabel;
+		}
+
+		// #endregion
+
+
+		// #region Keeping the screen awake
+
+		// - Asks the browser to keep the screen awake while the countdown runs, so the display never dims mid-turn.
+		// - Quietly does nothing on browsers without the Wake Lock API.
+		async function keepTheScreenAwake()
+		{
+			if (!('wakeLock' in navigator)) return;
+			try
+			{
+				screenWakeLock
+					= await navigator.wakeLock.request('screen');
+			}
+			catch
+			{
+				screenWakeLock
+					= null;
+			}
+		}
+
+		// Lets the screen sleep again once the countdown is no longer running.
+		function letTheScreenSleep()
+		{
+			screenWakeLock?.release();
+			screenWakeLock
+				= null;
+		}
+
+		// The browser silently drops wake locks when the tab is hidden, so returning to a still-running timer re-requests one.
+		document.addEventListener('visibilitychange', () =>
+		{
+			if (document.visibilityState === 'visible' && endAtMs !== null) keepTheScreenAwake();
+		});
+
+		// #endregion
+
+
+		// #region Running the countdown
+
+		// - Starts (or resumes) the countdown and expands the overlay, per the design: the timer grows big when started.
+		// - A start after time ran out begins a fresh 60 seconds.
+		function startTheTimer()
+		{
+			if (endAtMs !== null) return;
+			if (remainingSeconds === 0) remainingSeconds = turnSeconds;
+			setTheTimeUpMood(false);
+
+			endAtMs
+				= Date.now() + remainingSeconds * 1000;
+			tickingHandle
+				= setInterval(tickTheCountdown, 200);
+			keepTheScreenAwake();
+			expandTheTimer();
+			showTheTimeEverywhere();
+		}
+
+		// Pauses the countdown, freezing the precise remaining seconds.
+		function pauseTheTimer()
+		{
+			if (endAtMs === null) return;
+			remainingSeconds
+				= secondsLeftRightNow();
+			stopTicking();
+			showTheTimeEverywhere();
+		}
+
+		// Resets the clock to a fresh 60 seconds, pausing if running.
+		function resetTheTimer()
+		{
+			stopTicking();
+			remainingSeconds
+				= turnSeconds;
+			setTheTimeUpMood(false);
+			showTheTimeEverywhere();
+		}
+
+		// The seconds remaining at this exact moment while running, never below zero.
+		function secondsLeftRightNow()
+		{
+			return Math.max(0, Math.ceil((endAtMs - Date.now()) / 1000));
+		}
+
+		// The repeating tick: refresh the displays, and finish the turn the moment zero arrives.
+		function tickTheCountdown()
+		{
+			remainingSeconds
+				= secondsLeftRightNow();
+			if (remainingSeconds === 0) finishTheTurn();
+			showTheTimeEverywhere();
+		}
+
+		// Clears the running tick and releases the wake lock — the shared wind-down for pausing, resetting, and finishing.
+		function stopTicking()
+		{
+			clearInterval(tickingHandle);
+			tickingHandle
+				= null;
+			endAtMs
+				= null;
+			letTheScreenSleep();
+		}
+
+		// Time is up: stop the clock, switch the displays into the pulsing time-up mood, and let the bubbles flood up with their sound.
+		function finishTheTurn()
+		{
+			stopTicking();
+			setTheTimeUpMood(true);
+			floodBubblesUpTheScreen();
+		}
+
+		// Turns the pulsing time-up styling on or off across both timer surfaces.
+		function setTheTimeUpMood(isTimeUp)
+		{
+			timerOverlay.classList.toggle('finished', isTimeUp);
+			timerBar.classList.toggle('finished', isTimeUp);
+		}
+
+		// #endregion
+
+
+		// #region Expanding and collapsing
+
+		// - Opens the big timer overlay.
+		// - The overlay is its own fixed layer over the rules, so the page's scroll position stays exactly where it was.
+		function expandTheTimer()
+		{
+			timerOverlay.hidden
+				= false;
+		}
+
+		// Closes the overlay, returning to the rules right where they were left.
+		function collapseTheTimer()
+		{
+			timerOverlay.hidden
+				= true;
+		}
+
+		// Toggles browser fullscreen, for propping the page up as the room's dedicated timer.
+		function toggleFullscreen()
+		{
+			if (document.fullscreenElement) document.exitFullscreen();
+			else document.documentElement.requestFullscreen();
+		}
+
+		// #endregion
+
+
+		// #region The bubbles
+
+		// A convenient random number within a range, for varying each bubble.
+		function randomBetween(low, high)
+		{
+			return low + Math.random() * (high - low);
+		}
+
+		// - Spawns one bubble into the bubble layer with the given character, then removes it once it has risen off-screen:
+		//	- `sizePx` — the bubble's diameter;
+		//	- `opacity` — how faint or vivid it is;
+		//	- `risingSeconds` — how long it takes to cross the viewport.
+		function releaseOneBubble({sizePx, opacity, risingSeconds})
+		{
+			const bubble
+				= document.createElement('div');
+			bubble.className
+				= 'bubble';
+			bubble.style.width
+				= `${sizePx}px`;
+			bubble.style.height
+				= `${sizePx}px`;
+			bubble.style.left
+				= `${randomBetween(0, 98)}vw`;
+			bubble.style.opacity
+				= opacity;
+			bubble.style.setProperty('--sway', `${randomBetween(-36, 36)}px`);
+			bubble.style.animationDuration
+				= `${risingSeconds}s, ${randomBetween(1.1, 2.1)}s`;
+			bubbleLayer.appendChild(bubble);
+
+			// The rise is the first (forwards) animation, so its end means the bubble is above the viewport and done.
+			bubble.addEventListener('animationend', (ending) =>
+			{
+				if (ending.animationName === 'bubbleRise') bubble.remove();
+			});
+		}
+
+		// The faint ambient stream: every few seconds while the page idles, one small quiet bubble drifts up.
+		function driftOneAmbientBubbleThenAnother()
+		{
+			releaseOneBubble(
+			{
+				sizePx: randomBetween(8, 26),
+				opacity: randomBetween(0.25, 0.5),
+				risingSeconds: randomBetween(9, 16)
+			});
+			setTimeout(driftOneAmbientBubbleThenAnother, randomBetween(1800, 5200));
+		}
+		driftOneAmbientBubbleThenAnother();
+
+		// The bubbly sound that accompanies the flood, loaded once and replayed from the top at each turn's end.
+		const bubblySound
+			= new Audio('bubble-alarm.mp3');
+
+		// - The time's-up moment: a dense flood of bubbles rushes up the screen while the bubbly sound plays.
+		// - The flood staggers its bubbles over a couple of seconds, so the surge feels alive rather than a single wall.
+		function floodBubblesUpTheScreen()
+		{
+			bubblySound.currentTime
+				= 0;
+			bubblySound.play();
+
+			for (let i = 0; i < 110; i++)
+			{
+				setTimeout(() =>
+				{
+					releaseOneBubble(
+					{
+						sizePx: randomBetween(14, 70),
+						opacity: randomBetween(0.55, 0.95),
+						risingSeconds: randomBetween(1.6, 3.4)
+					});
+				}, randomBetween(0, 2200));
+			}
+		}
+
+		// #endregion
+
+
+		// #region Wiring the controls
+
+		// One shared start/pause behavior serves both the bar's and the overlay's button.
+		function startOrPauseTheTimer()
+		{
+			if (endAtMs !== null) pauseTheTimer();
+			else startTheTimer();
+		}
+		barStartPause.addEventListener('click', startOrPauseTheTimer);
+		overlayStartPause.addEventListener('click', startOrPauseTheTimer);
+
+		document.getElementById('barExpand').addEventListener('click', expandTheTimer);
+		document.getElementById('overlayCollapse').addEventListener('click', collapseTheTimer);
+		document.getElementById('overlayReset').addEventListener('click', resetTheTimer);
+		document.getElementById('overlayFullscreen').addEventListener('click', toggleFullscreen);
+
+		// Paint the initial 1:00 across the displays.
+		showTheTimeEverywhere();
+
+		// #endregion
+	</script>
+</body>
+</html>
