@@ -606,6 +606,14 @@
 		let tickingHandle
 			= null;
 
+		// How long the time's-up moment (the pulse, flood, and beep) holds before the clock quietly resets itself for the next turn.
+		const timeUpMomentMs
+			= 4000;
+
+		// The handle for that scheduled self-reset, or null when none is pending.
+		let autoResetHandle
+			= null;
+
 		// The screen wake lock held while the countdown runs, or null when the screen is free to sleep.
 		let screenWakeLock
 			= null;
@@ -707,6 +715,7 @@
 		function startTheTimer()
 		{
 			if (endAtMs !== null) return;
+			cancelThePendingAutoReset();
 			if (remainingSeconds === 0) remainingSeconds = turnSeconds;
 			setTheTimeUpMood(false);
 
@@ -732,11 +741,20 @@
 		// Resets the clock to a fresh 60 seconds, pausing if running.
 		function resetTheTimer()
 		{
+			cancelThePendingAutoReset();
 			stopTicking();
 			remainingSeconds
 				= turnSeconds;
 			setTheTimeUpMood(false);
 			showTheTimeEverywhere();
+		}
+
+		// Calls off the scheduled self-reset — because it just ran, or because a start or manual reset beat it to the clock.
+		function cancelThePendingAutoReset()
+		{
+			clearTimeout(autoResetHandle);
+			autoResetHandle
+				= null;
 		}
 
 		// The seconds remaining at this exact moment while running, never below zero.
@@ -765,13 +783,16 @@
 			letTheScreenSleep();
 		}
 
-		// Time is up: stop the clock, switch the displays into the pulsing time-up mood, and let the bubbles flood up with their sound and the loud beep over it.
+		// - Time is up: stop the clock, switch the displays into the pulsing time-up mood, and let the bubbles flood up with their sound and the loud beep over it.
+		// - Once the moment has played out, the clock quietly resets itself for the next turn — no manual reset between turns.
 		function finishTheTurn()
 		{
 			stopTicking();
 			setTheTimeUpMood(true);
 			floodBubblesUpTheScreen();
 			soundTheLoudBeep();
+			autoResetHandle
+				= setTimeout(resetTheTimer, timeUpMomentMs);
 		}
 
 		// Turns the pulsing time-up styling on or off across both timer surfaces.
