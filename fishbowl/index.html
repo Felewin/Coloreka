@@ -765,12 +765,13 @@
 			letTheScreenSleep();
 		}
 
-		// Time is up: stop the clock, switch the displays into the pulsing time-up mood, and let the bubbles flood up with their sound.
+		// Time is up: stop the clock, switch the displays into the pulsing time-up mood, and let the bubbles flood up with their sound and the loud beep over it.
 		function finishTheTurn()
 		{
 			stopTicking();
 			setTheTimeUpMood(true);
 			floodBubblesUpTheScreen();
+			soundTheLoudBeep();
 		}
 
 		// Turns the pulsing time-up styling on or off across both timer surfaces.
@@ -877,6 +878,31 @@
 		// The bubbly sound that accompanies the flood, loaded once and replayed from the top at each turn's end.
 		const bubblySound
 			= new Audio('bubble-alarm.mp3');
+
+		// The audio context behind the loud beep, created on first use — always after the start click, so the browser allows it.
+		let beepAudioContext
+			= null;
+
+		// - The loud beep that rides on top of the bubbly sound at zero: the bubbles carry the immersion, the beep carries the unmistakable cutoff.
+		// - Synthesized as a square wave rather than stored, keeping the folder at its two media assets.
+		function soundTheLoudBeep()
+		{
+			beepAudioContext
+				??= new AudioContext();
+			const beep
+				= beepAudioContext.createOscillator();
+			const loudness
+				= beepAudioContext.createGain();
+			beep.type
+				= 'square';
+			beep.frequency.value
+				= 880;
+			loudness.gain.setValueAtTime(0.9, beepAudioContext.currentTime);
+			loudness.gain.exponentialRampToValueAtTime(0.001, beepAudioContext.currentTime + 1.2);
+			beep.connect(loudness).connect(beepAudioContext.destination);
+			beep.start();
+			beep.stop(beepAudioContext.currentTime + 1.2);
+		}
 
 		// - The time's-up moment: a dense flood of bubbles rushes up the screen while the bubbly sound plays.
 		// - The flood staggers its bubbles over a couple of seconds, so the surge feels alive rather than a single wall.
