@@ -889,6 +889,10 @@
 		{
 			beepAudioContext
 				??= new AudioContext();
+			const beepSeconds
+				= 1.2;
+			const beepEndsAt
+				= beepAudioContext.currentTime + beepSeconds;
 			const beep
 				= beepAudioContext.createOscillator();
 			const loudness
@@ -898,10 +902,10 @@
 			beep.frequency.value
 				= 880;
 			loudness.gain.setValueAtTime(0.9, beepAudioContext.currentTime);
-			loudness.gain.exponentialRampToValueAtTime(0.001, beepAudioContext.currentTime + 1.2);
+			loudness.gain.exponentialRampToValueAtTime(0.001, beepEndsAt);
 			beep.connect(loudness).connect(beepAudioContext.destination);
 			beep.start();
-			beep.stop(beepAudioContext.currentTime + 1.2);
+			beep.stop(beepEndsAt);
 		}
 
 		// - The time's-up moment: a dense flood of bubbles rushes up the screen while the bubbly sound plays.
