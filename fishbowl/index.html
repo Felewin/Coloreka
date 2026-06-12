@@ -575,7 +575,6 @@
 		<div id="overlayControls">
 			<button class="wave-button" id="overlayStartPause">Start</button>
 			<button class="wave-button" id="overlayReset">Reset</button>
-			<button class="wave-button" id="overlayFullscreen">Fullscreen</button>
 		</div>
 		<div id="roundReference">
 			<p><em>1 · Talk</em> — describe with words not on the slip; guessed words become sayable.</p>
@@ -833,6 +832,13 @@
 				pressing.preventDefault();
 				startOrPauseTheTimer();
 			}
+
+			// Enter toggles fullscreen — keyboard-only, so the overlay carries one less button to look at.
+			if (pressing.key === 'Enter')
+			{
+				pressing.preventDefault();
+				toggleFullscreen();
+			}
 		});
 
 		// Toggles browser fullscreen, for propping the page up as the room's dedicated timer.
@@ -967,7 +973,6 @@
 
 		document.getElementById('barExpand').addEventListener('click', expandTheTimer);
 		document.getElementById('overlayReset').addEventListener('click', resetTheTimer);
-		document.getElementById('overlayFullscreen').addEventListener('click', toggleFullscreen);
 
 		// Paint the initial 1:00 across the displays.
 		showTheTimeEverywhere();
