@@ -121,26 +121,24 @@
 			padding: 3.5rem 2rem 0;
 		}
 
-		/* The one-word title, light and large, with a navy-to-aqua shimmer befitting water. */
+		/* - The header floats straight over the video with no panel beneath it, so its text is white and bold, with a soft navy shadow lifting it off the scene. */
 		header h1
 		{
 			font-size: clamp(3.5rem, 8vw, 6rem);
-			font-weight: 300;
+			font-weight: 600;
 			letter-spacing: 0.08em;
-			background: linear-gradient(120deg, var(--navy) 30%, var(--aqua) 70%);
-			-webkit-background-clip: text;
-			background-clip: text;
-			-webkit-text-fill-color: transparent;
-			color: transparent;
+			color: #fff;
+			text-shadow: 0 2px 18px rgba(22, 51, 95, 0.55);
 		}
 
-		/* The quiet subtitle line beneath the title. */
+		/* The subtitle line beneath the title. */
 		header p
 		{
 			font-size: clamp(1.1rem, 2vw, 1.4rem);
-			color: var(--navy-soft);
+			color: #fff;
 			margin-top: 0.6rem;
-			font-weight: 350;
+			font-weight: 600;
+			text-shadow: 0 1px 10px rgba(22, 51, 95, 0.55);
 		}
 
 		/* #endregion */
@@ -400,13 +398,16 @@
 
 		/* #region The footer */
 
-		/* The small credits footer, quiet beneath the rules and clear of the sticky timer bar. */
+		/* - The small credits footer, quiet beneath the rules and clear of the sticky timer bar.
+		   - It sits straight over the video with no panel beneath it, so its text is white and bold, with a soft navy shadow lifting it off the scene. */
 		footer
 		{
 			text-align: center;
 			padding: 0 2rem 7.5rem;
 			font-size: clamp(0.85rem, 1.4vw, 1rem);
-			color: var(--navy-soft);
+			color: #fff;
+			font-weight: 600;
+			text-shadow: 0 1px 10px rgba(22, 51, 95, 0.55);
 		}
 		footer p
 		{
@@ -414,7 +415,7 @@
 		}
 		footer a
 		{
-			color: var(--aqua);
+			color: #cdeefb;
 			text-decoration: none;
 		}
 		footer a:hover
@@ -585,7 +586,6 @@
 			<button class="wave-button" id="overlayStartPause">Start</button>
 			<button class="wave-button" id="overlayReset">Reset</button>
 			<button class="wave-button" id="overlayFullscreen">Fullscreen</button>
-			<button class="wave-button" id="overlayCollapse">Close</button>
 		</div>
 		<div id="roundReference">
 			<p><em>1 · Talk</em> — describe with words not on the slip; guessed words become sayable.</p>
@@ -803,12 +803,17 @@
 				= false;
 		}
 
-		// Closes the overlay, returning to the rules right where they were left.
+		// - Closes the overlay, returning to the rules right where they were left.
+		// - Esc is the only way to close it; in fullscreen, the first Esc exits fullscreen and a second one closes the overlay.
 		function collapseTheTimer()
 		{
 			timerOverlay.hidden
 				= true;
 		}
+		document.addEventListener('keydown', (pressing) =>
+		{
+			if (pressing.key === 'Escape') collapseTheTimer();
+		});
 
 		// Toggles browser fullscreen, for propping the page up as the room's dedicated timer.
 		function toggleFullscreen()
@@ -912,7 +917,6 @@
 		overlayStartPause.addEventListener('click', startOrPauseTheTimer);
 
 		document.getElementById('barExpand').addEventListener('click', expandTheTimer);
-		document.getElementById('overlayCollapse').addEventListener('click', collapseTheTimer);
 		document.getElementById('overlayReset').addEventListener('click', resetTheTimer);
 		document.getElementById('overlayFullscreen').addEventListener('click', toggleFullscreen);
 
